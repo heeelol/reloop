@@ -10,6 +10,7 @@ import {
   fetchItemsNear,
   seedNearby,
   subscribeItems,
+  subscribePresence,
   uploadPhoto,
 } from './lib/api'
 import Header from './components/Header'
@@ -41,7 +42,24 @@ export default function App() {
   const [seeding, setSeeding] = useState(false)
   const [mobileView, setMobileView] = useState<'list' | 'map'>('list')
   const [toast, setToast] = useState<string | null>(null)
+  const [presenceCount, setPresenceCount] = useState(0)
+  const [recentIds, setRecentIds] = useState<Set<string>>(new Set())
+  const [radiusKm, setRadiusKm] = useState(8)
   const toastTimer = useRef<number>(0)
+  const recentTimers = useRef<Record<string, number>>({})
+
+  // Flag an item as just-arrived so its map marker plays the drop animation.
+  function markRecent(id: string) {
+    setRecentIds((prev) => new Set(prev).add(id))
+    window.clearTimeout(recentTimers.current[id])
+    recentTimers.current[id] = window.setTimeout(() => {
+      setRecentIds((prev) => {
+        const n = new Set(prev)
+        n.delete(id)
+        return n
+      })
+    }, 1400)
+  }
 
   // Resolve location, sign in (anon), load nearby items, and subscribe to
   // live updates. Falls back to local mock data when there's no backend.
@@ -58,10 +76,12 @@ export default function App() {
         setUserId(id)
         setItems(await fetchItemsNear(loc[0], loc[1]))
         unsub = subscribeItems(
-          (it) =>
+          (it) => {
+            markRecent(it.id)
             setItems((prev) =>
               prev.some((p) => p.id === it.id) ? prev : [it, ...prev],
-            ),
+            )
+          },
           (it) =>
             setItems((prev) => prev.map((p) => (p.id === it.id ? it : p))),
         )
@@ -86,6 +106,23 @@ export default function App() {
     return () => unsub?.()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Live presence — how many people are browsing right now.
+  useEffect(() => subscribePresence(setPresenceCount), [])
+
+  // Re-run the PostGIS radius search when the user drags the radius slider.
+  const firstRadius = useRef(true)
+  useEffect(() => {
+    if (!hasSupabase || !userLoc) return
+    if (firstRadius.current) {
+      firstRadius.current = false
+      return
+    }
+    const t = window.setTimeout(async () => {
+      setItems(await fetchItemsNear(userLoc[0], userLoc[1], radiusKm * 1000))
+    }, 300)
+    return () => window.clearTimeout(t)
+  }, [radiusKm, userLoc])
 
   function flash(msg: string) {
     setToast(msg)
@@ -131,6 +168,7 @@ export default function App() {
           prev.some((p) => p.id === item.id) ? prev : [item, ...prev],
         )
         setSelectedId(item.id)
+        markRecent(item.id)
       } catch (e) {
         flash('Could not post — please try again.')
         return
@@ -144,6 +182,7 @@ export default function App() {
       }
       setItems((prev) => [item, ...prev])
       setSelectedId(item.id)
+      markRecent(item.id)
     }
     setShowPost(false)
     setMobileView('map')
@@ -226,9 +265,37 @@ export default function App() {
             userLoc={userLoc}
             selectedId={selectedId}
             showHeat={showHeat}
+            radiusM={radiusKm * 1000}
+            recentIds={recentIds}
             onSelect={setSelectedId}
             onOpenDetails={setDetailId}
           />
+          {hasSupabase && presenceCount > 0 && (
+            <div className="absolute left-3 top-3 z-[500] flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-md backdrop-blur">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-loop-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-loop-500" />
+              </span>
+              {presenceCount} browsing now
+            </div>
+          )}
+          {hasSupabase && userLoc && (
+            <div className="absolute bottom-4 left-3 z-[500] w-44 rounded-xl bg-white/95 px-3 py-2 shadow-md backdrop-blur">
+              <div className="mb-1 flex justify-between text-[11px] font-semibold text-gray-600">
+                <span>Search radius</span>
+                <span className="text-loop-700">{radiusKm} km</span>
+              </div>
+              <input
+                type="range"
+                min={1}
+                max={25}
+                step={1}
+                value={radiusKm}
+                onChange={(e) => setRadiusKm(Number(e.target.value))}
+                className="w-full accent-loop-600"
+              />
+            </div>
+          )}
           <button
             onClick={() => setShowHeat((v) => !v)}
             className={`absolute right-3 top-3 z-[500] rounded-full px-3 py-1.5 text-xs font-semibold shadow-md transition ${

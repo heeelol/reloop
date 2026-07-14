@@ -20,17 +20,19 @@ interface Props {
   userLoc: [number, number] | null
   selectedId: string | null
   showHeat: boolean
+  radiusM?: number
+  recentIds?: Set<string>
   onSelect: (id: string) => void
   onOpenDetails?: (id: string) => void
 }
 
-function pinIcon(item: Item): L.DivIcon {
+function pinIcon(item: Item, isNew: boolean): L.DivIcon {
   const claimed = item.status === 'claimed'
   return L.divIcon({
     className: '',
-    html: `<div class="loop-pin${claimed ? ' claimed' : ''}"><span>${
-      CATEGORY_EMOJI[item.category]
-    }</span></div>`,
+    html: `<div class="loop-pin${claimed ? ' claimed' : ''}${
+      isNew ? ' drop' : ''
+    }"><span>${CATEGORY_EMOJI[item.category]}</span></div>`,
     iconSize: [34, 34],
     iconAnchor: [17, 34],
     popupAnchor: [0, -32],
@@ -86,6 +88,8 @@ export default function MapView({
   userLoc,
   selectedId,
   showHeat,
+  radiusM,
+  recentIds,
   onSelect,
   onOpenDetails,
 }: Props) {
@@ -99,7 +103,7 @@ export default function MapView({
           <Marker
             key={it.id}
             position={[it.lat, it.lng]}
-            icon={pinIcon(it)}
+            icon={pinIcon(it, recentIds?.has(it.id) ?? false)}
             eventHandlers={{ click: () => onSelect(it.id) }}
           >
             <Popup>
@@ -139,7 +143,7 @@ export default function MapView({
           </Marker>
         )
       }),
-    [items, userLoc, onSelect, onOpenDetails],
+    [items, userLoc, onSelect, onOpenDetails, recentIds],
   )
 
   return (
@@ -159,8 +163,8 @@ export default function MapView({
         <>
           <Circle
             center={userLoc}
-            radius={220}
-            pathOptions={{ color: '#14b06e', fillColor: '#14b06e', fillOpacity: 0.08, weight: 1 }}
+            radius={radiusM ?? 220}
+            pathOptions={{ color: '#14b06e', fillColor: '#14b06e', fillOpacity: 0.06, weight: 1 }}
           />
           <CircleMarker
             center={userLoc}

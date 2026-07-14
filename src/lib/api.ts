@@ -173,6 +173,24 @@ export function subscribeItems(
   }
 }
 
+/** Live presence — reports how many people are browsing ReLoop right now. */
+export function subscribePresence(onCount: (n: number) => void): () => void {
+  if (!supabase) return () => {}
+  const sb = supabase
+  const key = Math.random().toString(36).slice(2)
+  const ch = sb.channel('reloop-presence', {
+    config: { presence: { key } },
+  })
+  ch.on('presence', { event: 'sync' }, () => {
+    onCount(Object.keys(ch.presenceState()).length)
+  }).subscribe((status) => {
+    if (status === 'SUBSCRIBED') ch.track({ online_at: Date.now() })
+  })
+  return () => {
+    sb.removeChannel(ch)
+  }
+}
+
 /** Demo helper: drop a set of sample give-aways around the user. */
 export async function seedNearby(
   lat: number,
