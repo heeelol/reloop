@@ -2,9 +2,11 @@
 
 **Give it away, keep it local, keep it out of landfill.**
 
+[![CI](https://github.com/heeelol/reloop/actions/workflows/ci.yml/badge.svg)](https://github.com/heeelol/reloop/actions/workflows/ci.yml)
+
 ![ReLoop — hyperlocal give-away map](docs/cover.png)
 
-🔗 **Live app:** https://reloop-six-beta.vercel.app
+🔗 **Live app:** https://reloop-six-beta.vercel.app · installable as a PWA
 
 ReLoop is a hyperlocal give-away map. Instead of throwing usable things in the
 bin, neighbours post them with a photo; anyone nearby can claim and collect them.
@@ -14,6 +16,15 @@ atmosphere, and a live community counter turns everyday reuse into visible impac
 Built for **TechCommons Hacks V1** — theme: *Global & Local Impact*.
 
 ---
+
+## Highlights
+
+- 🧠 **Semantic "search by need"** — type *"something to sit on"* and pgvector + OpenAI embeddings surface the chairs. AI is a retrieval layer, not a label.
+- 📷 **AI vision posting** — snap a photo, the model identifies the item and estimates CO₂ saved.
+- 🗺️ **Real geospatial** — PostGIS nearest-item search with a live radius slider.
+- ⚡ **Realtime** — new give-aways drop onto every open map; a presence badge shows who's browsing.
+- 🎉 **Delightful** — confetti + a pulsing impact counter on every claim; slide-in item drawer with walking distance.
+- 📱 **Installable PWA**, ✅ **CI** (Vitest + typecheck + build), 🗜️ client-side image compression.
 
 ## The problem
 

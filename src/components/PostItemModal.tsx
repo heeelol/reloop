@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import type { AiAnalysis, Category, Item } from '../lib/types'
 import { CATEGORIES, CATEGORY_EMOJI, co2Equivalent, formatCo2 } from '../lib/impact'
 import { analyzePhoto } from '../lib/ai'
+import { compressImage } from '../lib/image'
 
 interface Props {
   userLoc: [number, number] | null
@@ -23,7 +24,8 @@ export default function PostItemModal({ userLoc, onClose, onSubmit }: Props) {
   const [co2, setCo2] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  async function handleFile(selected: File) {
+  async function handleFile(raw: File) {
+    const selected = await compressImage(raw)
     setFile(selected)
     setPreview(URL.createObjectURL(selected))
     setAnalyzing(true)
