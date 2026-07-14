@@ -20,10 +20,14 @@ Built for **TechCommons Hacks V1** — theme: *Global & Local Impact*.
 ## Highlights
 
 - 🧠 **Semantic "search by need"** — type *"something to sit on"* and pgvector + OpenAI embeddings surface the chairs. AI is a retrieval layer, not a label.
+- 🎯 **AI matching alerts** — set an alert for what you need; when a semantically matching item is posted nearby, the server-side vector match notifies you.
 - 📷 **AI vision posting** — snap a photo, the model identifies the item and estimates CO₂ saved.
+- 💬 **Realtime pickup chat** — giver and claimer arrange handoff in-app.
+- 🔔 **Notifications** — live bell for matches, claims, and new messages.
 - 🗺️ **Real geospatial** — PostGIS nearest-item search with a live radius slider.
 - ⚡ **Realtime** — new give-aways drop onto every open map; a presence badge shows who's browsing.
-- 🎉 **Delightful** — confetti + a pulsing impact counter on every claim; slide-in item drawer with walking distance.
+- 🏆 **Leaderboard + achievements** — top givers by CO₂ saved; badges for milestones.
+- ❤️ **Favorites**, 🎉 confetti + a pulsing impact counter on every claim, slide-in item drawer with walking distance.
 - 📱 **Installable PWA**, ✅ **CI** (Vitest + typecheck + build), 🗜️ client-side image compression.
 
 ## The problem
