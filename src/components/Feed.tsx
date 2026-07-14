@@ -4,6 +4,7 @@ import { CATEGORIES, CATEGORY_EMOJI } from '../lib/impact'
 import { distanceKm } from '../lib/geo'
 import { hasSupabase } from '../lib/supabase'
 import { searchItems } from '../lib/api'
+import { getFavs, toggleFav } from '../lib/favorites'
 import ItemCard from './ItemCard'
 
 interface Props {
@@ -13,6 +14,7 @@ interface Props {
   loading?: boolean
   onSelect: (id: string) => void
   onClaim: (id: string) => void
+  onCreateWant?: (query: string) => void
 }
 
 type SortKey = 'nearest' | 'newest' | 'impact'
@@ -24,12 +26,16 @@ export default function Feed({
   loading,
   onSelect,
   onClaim,
+  onCreateWant,
 }: Props) {
   const [query, setQuery] = useState('')
   const [cat, setCat] = useState<Category | 'All'>('All')
   const [sort, setSort] = useState<SortKey>(userLoc ? 'nearest' : 'newest')
   const [semantic, setSemantic] = useState<Item[] | null>(null)
   const [searching, setSearching] = useState(false)
+  const [favs, setFavs] = useState<Set<string>>(() => getFavs())
+  const [showSaved, setShowSaved] = useState(false)
+  const [alerted, setAlerted] = useState(false)
 
   // Semantic "search by need" — embed the query and match items by meaning.
   // Falls back to the local keyword filter if there's no backend / it fails.
@@ -67,6 +73,7 @@ export default function Feed({
       dist: userLoc ? distanceKm(userLoc[0], userLoc[1], it.lat, it.lng) : null,
     }))
     if (cat !== 'All') list = list.filter((r) => r.item.category === cat)
+    if (showSaved) list = list.filter((r) => favs.has(r.item.id))
 
     // Semantic results arrive pre-ranked by relevance — preserve that order.
     if (usingSemantic) return list
@@ -91,7 +98,7 @@ export default function Feed({
         new Date(a.item.createdAt).getTime()
       )
     })
-  }, [items, semantic, usingSemantic, cat, query, sort, userLoc])
+  }, [items, semantic, usingSemantic, cat, query, sort, userLoc, showSaved, favs])
 
   return (
     <div className="flex h-full flex-col">
@@ -99,7 +106,10 @@ export default function Feed({
         <div className="relative">
           <input
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value)
+              setAlerted(false)
+            }}
             placeholder={
               hasSupabase
                 ? 'Search by need… “something to sit on”'
@@ -116,10 +126,31 @@ export default function Feed({
             ✨ AI-ranked by relevance to “{query.trim()}”
           </p>
         )}
+        {onCreateWant && query.trim() !== '' && (
+          <button
+            onClick={() => {
+              if (alerted) return
+              onCreateWant(query.trim())
+              setAlerted(true)
+            }}
+            className={`w-full rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
+              alerted
+                ? 'border-loop-200 bg-loop-50 text-loop-700'
+                : 'border-dashed border-loop-300 text-loop-700 hover:bg-loop-50'
+            }`}
+          >
+            {alerted
+              ? '✓ We’ll notify you when a match is posted nearby'
+              : `🔔 Alert me when “${query.trim()}” is posted nearby`}
+          </button>
+        )}
         <div className="flex items-center justify-between gap-2">
           <div className="flex gap-1.5 overflow-x-auto pb-1">
-            <Chip active={cat === 'All'} onClick={() => setCat('All')}>
+            <Chip active={cat === 'All' && !showSaved} onClick={() => { setCat('All'); setShowSaved(false) }}>
               All
+            </Chip>
+            <Chip active={showSaved} onClick={() => setShowSaved((v) => !v)}>
+              ♥ Saved
             </Chip>
             {CATEGORIES.map((c) => (
               <Chip key={c} active={cat === c} onClick={() => setCat(c)}>
@@ -177,6 +208,8 @@ export default function Feed({
             item={item}
             distanceKm={dist}
             selected={item.id === selectedId}
+            isFav={favs.has(item.id)}
+            onToggleFav={() => setFavs(new Set(toggleFav(item.id)))}
             onSelect={() => onSelect(item.id)}
             onClaim={() => onClaim(item.id)}
           />

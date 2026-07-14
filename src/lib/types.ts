@@ -33,3 +33,29 @@ export interface AiAnalysis {
   co2Saved: number
   reason: string
 }
+
+export type NotificationType = 'match' | 'claim' | 'message'
+
+export interface AppNotification {
+  id: string
+  type: NotificationType
+  title: string
+  body: string
+  itemId: string | null
+  read: boolean
+  createdAt: string
+}
+
+export interface ChatMessage {
+  id: string
+  itemId: string
+  senderId: string
+  body: string
+  createdAt: string
+}
+
+export interface LeaderRow {
+  ownerName: string
+  given: number
+  co2: number
+}

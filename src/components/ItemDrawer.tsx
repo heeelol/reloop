@@ -5,9 +5,12 @@ import { CATEGORY_EMOJI, co2Equivalent, formatCo2 } from '../lib/impact'
 import { distanceKm, formatDistance } from '../lib/geo'
 import { timeAgo } from '../lib/time'
 
+import ChatPanel from './ChatPanel'
+
 interface Props {
   item: Item | null
   userLoc: [number, number] | null
+  userId?: string | null
   onClose: () => void
   onClaim: (id: string) => void
 }
@@ -21,9 +24,18 @@ function pin(item: Item) {
   })
 }
 
-export default function ItemDrawer({ item, userLoc, onClose, onClaim }: Props) {
+export default function ItemDrawer({
+  item,
+  userLoc,
+  userId,
+  onClose,
+  onClaim,
+}: Props) {
   if (!item) return null
   const claimed = item.status === 'claimed'
+  const isOwner = !!userId && item.ownerId === userId
+  const isClaimer = !!userId && item.claimedById === userId
+  const canChat = claimed && (isOwner || isClaimer)
   const dist =
     userLoc && distanceKm(userLoc[0], userLoc[1], item.lat, item.lng)
   const walkMin = dist != null ? Math.max(1, Math.round((dist / 4.8) * 60)) : null
@@ -128,6 +140,8 @@ export default function ItemDrawer({ item, userLoc, onClose, onClaim }: Props) {
               )}
             </MapContainer>
           </div>
+
+          {canChat && <ChatPanel itemId={item.id} userId={userId ?? null} />}
         </div>
 
         <div className="flex gap-2 border-t border-gray-100 p-4">
@@ -138,14 +152,18 @@ export default function ItemDrawer({ item, userLoc, onClose, onClaim }: Props) {
             Share
           </button>
           <button
-            disabled={claimed}
+            disabled={claimed || isOwner}
             onClick={() => {
               onClaim(item.id)
               onClose()
             }}
             className="flex-1 rounded-full bg-loop-500 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-loop-600 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {claimed ? 'Already claimed' : 'Reserve & arrange pickup'}
+            {isOwner
+              ? 'This is your listing'
+              : claimed
+                ? 'Reserved'
+                : 'Reserve & arrange pickup'}
           </button>
         </div>
       </div>

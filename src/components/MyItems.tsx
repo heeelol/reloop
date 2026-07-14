@@ -42,20 +42,23 @@ function Row({
 }
 
 export default function MyItems({ items, userId, onRelease, onDelete, onSelect }: Props) {
-  const { posted, reserved, impactCo2, rehomed } = useMemo(() => {
+  const { posted, reserved, impactCo2, rehomed, badges } = useMemo(() => {
     const posted = items.filter((i) => i.ownerId && i.ownerId === userId)
     const reserved = items.filter(
       (i) => i.claimedById && i.claimedById === userId && i.ownerId !== userId,
     )
     const given = posted.filter((i) => i.status === 'claimed')
-    return {
-      posted,
-      reserved,
-      impactCo2:
-        given.reduce((s, i) => s + i.co2Saved, 0) +
-        reserved.reduce((s, i) => s + i.co2Saved, 0),
-      rehomed: given.length + reserved.length,
-    }
+    const impactCo2 =
+      given.reduce((s, i) => s + i.co2Saved, 0) +
+      reserved.reduce((s, i) => s + i.co2Saved, 0)
+    const rehomed = given.length + reserved.length
+    const badges: string[] = []
+    if (posted.length >= 1) badges.push('🌱 First give')
+    if (given.length >= 3) badges.push('♻️ Serial giver')
+    if (reserved.length >= 1) badges.push('🤝 Rescuer')
+    if (impactCo2 >= 50) badges.push('🌍 Eco hero')
+    if (rehomed >= 10) badges.push('🏅 Loop legend')
+    return { posted, reserved, impactCo2, rehomed, badges }
   }, [items, userId])
 
   return (
@@ -68,6 +71,18 @@ export default function MyItems({ items, userId, onRelease, onDelete, onSelect }
           <div className="text-xs text-gray-600">
             your impact · {rehomed} item{rehomed === 1 ? '' : 's'} kept in the loop
           </div>
+          {badges.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {badges.map((b) => (
+                <span
+                  key={b}
+                  className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-loop-700 shadow-sm"
+                >
+                  {b}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
