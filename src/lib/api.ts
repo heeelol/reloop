@@ -20,6 +20,50 @@ function rowToItem(r: Record<string, unknown>): Item {
   }
 }
 
+const EMBED_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/embed`
+const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
+
+/** Embed text via the edge function (OpenAI). Returns the raw vector. */
+export async function embedText(text: string): Promise<number[] | null> {
+  if (!import.meta.env.VITE_SUPABASE_URL) return null
+  try {
+    const res = await fetch(EMBED_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(ANON ? { Authorization: `Bearer ${ANON}`, apikey: ANON } : {}),
+      },
+      body: JSON.stringify({ input: text }),
+    })
+    if (!res.ok) return null
+    const json = await res.json()
+    return Array.isArray(json.embedding) ? json.embedding : null
+  } catch {
+    return null
+  }
+}
+
+/** Semantic "search by need": embed the query, match items by meaning. */
+export async function searchItems(
+  query: string,
+  lat: number | null,
+  lng: number | null,
+): Promise<Item[] | null> {
+  if (!supabase) return null
+  const emb = await embedText(query)
+  if (!emb) return null
+  const { data, error } = await supabase.rpc('match_items', {
+    query_embedding: JSON.stringify(emb),
+    p_lat: lat,
+    p_lng: lng,
+  })
+  if (error) {
+    console.warn('match_items failed:', error.message)
+    return null
+  }
+  return (data ?? []).map(rowToItem)
+}
+
 /** Ensure we have an (anonymous) identity so posting/claiming works. */
 export async function ensureAuth(): Promise<string | null> {
   if (!supabase) return null
@@ -71,6 +115,10 @@ export async function createItem(
   ownerId: string,
 ): Promise<Item> {
   if (!supabase) throw new Error('No backend')
+  // Embed the listing so it's immediately findable by semantic search.
+  const emb = await embedText(
+    `${input.title}. ${input.description} (category: ${input.category})`,
+  )
   const { data, error } = await supabase
     .from('items')
     .insert({
@@ -84,6 +132,7 @@ export async function createItem(
       location_name: input.locationName,
       co2_saved: input.co2Saved,
       owner_name: input.ownerName,
+      embedding: emb ? JSON.stringify(emb) : null,
     })
     .select()
     .single()
