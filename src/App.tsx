@@ -1,18 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { Item } from './lib/types'
+import type { AppNotification, Item } from './lib/types'
 import { generateMockItems } from './lib/mock'
 import { hasSupabase } from './lib/supabase'
 import { celebrate } from './lib/celebrate'
 import {
   claimItem,
   createItem,
+  createWant,
   deleteItem,
   ensureAuth,
   fetchItemsNear,
   fetchMyItems,
+  fetchNotifications,
+  markNotificationsRead,
+  notifyMatches,
   releaseClaim,
   seedNearby,
   subscribeItems,
+  subscribeNotifications,
   subscribePresence,
   uploadPhoto,
 } from './lib/api'
@@ -30,6 +35,8 @@ import MapView from './components/MapView'
 import PostItemModal from './components/PostItemModal'
 import ItemDrawer from './components/ItemDrawer'
 import OnboardingModal from './components/OnboardingModal'
+import NotificationsBell from './components/NotificationsBell'
+import LeaderboardModal from './components/LeaderboardModal'
 import ErrorBoundary from './components/ErrorBoundary'
 
 // Fallback center (used until geolocation resolves): central San Francisco.
@@ -63,6 +70,8 @@ export default function App() {
   const [name, setName] = useState<string>(() => getName())
   const [showProfile, setShowProfile] = useState(false)
   const [firstVisit, setFirstVisit] = useState(false)
+  const [notifications, setNotifications] = useState<AppNotification[]>([])
+  const [showLeaderboard, setShowLeaderboard] = useState(false)
   const toastTimer = useRef<number>(0)
   const recentTimers = useRef<Record<string, number>>({})
 
@@ -154,6 +163,16 @@ export default function App() {
   useEffect(() => {
     if (userId) fetchMyItems(userId).then(setMyItems)
   }, [userId, tab])
+
+  // Notifications: load history + subscribe to new ones (matches/claims/messages).
+  useEffect(() => {
+    if (!userId) return
+    fetchNotifications().then(setNotifications)
+    return subscribeNotifications(userId, (n) => {
+      setNotifications((prev) => [n, ...prev])
+      flash(n.title)
+    })
+  }, [userId])
 
   // Re-run the PostGIS radius search when the user drags the radius slider.
   const firstRadius = useRef(true)
@@ -256,6 +275,7 @@ export default function App() {
         setSelectedId(item.id)
         markRecent(item.id)
         refreshMine()
+        notifyMatches(item.id) // alert anyone whose "want" matches this
       } catch {
         flash('Could not post — please try again.')
         return
@@ -289,6 +309,23 @@ export default function App() {
       })
       flash(`Added ${seeded.length} sample give-aways nearby`)
     }
+  }
+
+  async function handleCreateWant(query: string) {
+    if (!userId) return
+    const ok = await createWant(
+      query,
+      userId,
+      userLoc?.[0] ?? null,
+      userLoc?.[1] ?? null,
+      radiusKm * 1000,
+    )
+    flash(ok ? `Alert set — we’ll ping you when “${query}” appears 🔔` : 'Could not set alert')
+  }
+
+  async function handleMarkRead() {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
+    await markNotificationsRead()
   }
 
   function saveProfile(newName: string) {
@@ -326,6 +363,16 @@ export default function App() {
                 setShowProfile(true)
               }
             : undefined
+        }
+        onLeaderboard={hasSupabase ? () => setShowLeaderboard(true) : undefined}
+        bell={
+          hasSupabase ? (
+            <NotificationsBell
+              notifications={notifications}
+              onOpenItem={setDetailId}
+              onMarkRead={handleMarkRead}
+            />
+          ) : undefined
         }
       />
       <ImpactBar {...stats} />
@@ -373,6 +420,7 @@ export default function App() {
                   setDetailId(id)
                 }}
                 onClaim={handleClaim}
+                onCreateWant={hasSupabase ? handleCreateWant : undefined}
               />
             ) : (
               <MyItems
@@ -464,10 +512,16 @@ export default function App() {
         <ItemDrawer
           item={detailItem}
           userLoc={userLoc}
+          userId={userId}
           onClose={() => setDetailId(null)}
           onClaim={handleClaim}
         />
       )}
+
+      <LeaderboardModal
+        open={showLeaderboard}
+        onClose={() => setShowLeaderboard(false)}
+      />
 
       <OnboardingModal
         open={showProfile}

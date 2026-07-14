@@ -1,5 +1,11 @@
 import { supabase } from './supabase'
-import type { Category, Item } from './types'
+import type {
+  AppNotification,
+  Category,
+  ChatMessage,
+  Item,
+  LeaderRow,
+} from './types'
 import { generateMockItems } from './mock'
 
 // Maps a DB row (from a table select or the items_near RPC) to our Item shape.
@@ -50,6 +56,156 @@ export async function deleteItem(id: string): Promise<void> {
   if (!supabase) throw new Error('No backend')
   const { error } = await supabase.from('items').delete().eq('id', id)
   if (error) throw error
+}
+
+// ── Notifications ───────────────────────────────────────────────────────────
+function rowToNotif(r: Record<string, unknown>): AppNotification {
+  return {
+    id: String(r.id),
+    type: r.type as AppNotification['type'],
+    title: String(r.title),
+    body: String(r.body ?? ''),
+    itemId: (r.item_id as string | null) ?? null,
+    read: Boolean(r.read),
+    createdAt: String(r.created_at),
+  }
+}
+
+export async function fetchNotifications(): Promise<AppNotification[]> {
+  if (!supabase) return []
+  const { data, error } = await supabase
+    .from('notifications')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(30)
+  if (error) return []
+  return (data ?? []).map(rowToNotif)
+}
+
+export async function markNotificationsRead(): Promise<void> {
+  if (!supabase) return
+  await supabase.from('notifications').update({ read: true }).eq('read', false)
+}
+
+export function subscribeNotifications(
+  userId: string,
+  onNew: (n: AppNotification) => void,
+): () => void {
+  if (!supabase) return () => {}
+  const sb = supabase
+  const ch = sb
+    .channel(`notif:${userId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'notifications',
+        filter: `user_id=eq.${userId}`,
+      },
+      (payload) => onNew(rowToNotif(payload.new as Record<string, unknown>)),
+    )
+    .subscribe()
+  return () => {
+    sb.removeChannel(ch)
+  }
+}
+
+// ── Wants (alert me when a match appears) ────────────────────────────────────
+export async function createWant(
+  query: string,
+  userId: string,
+  lat: number | null,
+  lng: number | null,
+  radiusM = 10000,
+): Promise<boolean> {
+  if (!supabase) return false
+  const emb = await embedText(query)
+  const { error } = await supabase.from('wants').insert({
+    user_id: userId,
+    query,
+    embedding: emb ? JSON.stringify(emb) : null,
+    lat,
+    lng,
+    radius_m: radiusM,
+  })
+  return !error
+}
+
+/** After posting, notify anyone whose want matches this item. */
+export async function notifyMatches(itemId: string): Promise<number> {
+  if (!supabase) return 0
+  const { data } = await supabase.rpc('notify_matching_wants', {
+    p_item_id: itemId,
+  })
+  return typeof data === 'number' ? data : 0
+}
+
+// ── Pickup chat ──────────────────────────────────────────────────────────────
+function rowToMsg(r: Record<string, unknown>): ChatMessage {
+  return {
+    id: String(r.id),
+    itemId: String(r.item_id),
+    senderId: String(r.sender_id),
+    body: String(r.body),
+    createdAt: String(r.created_at),
+  }
+}
+
+export async function fetchMessages(itemId: string): Promise<ChatMessage[]> {
+  if (!supabase) return []
+  const { data } = await supabase
+    .from('messages')
+    .select('*')
+    .eq('item_id', itemId)
+    .order('created_at', { ascending: true })
+  return (data ?? []).map(rowToMsg)
+}
+
+export async function sendMessage(
+  itemId: string,
+  senderId: string,
+  body: string,
+): Promise<void> {
+  if (!supabase) return
+  await supabase
+    .from('messages')
+    .insert({ item_id: itemId, sender_id: senderId, body })
+}
+
+export function subscribeMessages(
+  itemId: string,
+  onNew: (m: ChatMessage) => void,
+): () => void {
+  if (!supabase) return () => {}
+  const sb = supabase
+  const ch = sb
+    .channel(`msg:${itemId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `item_id=eq.${itemId}`,
+      },
+      (payload) => onNew(rowToMsg(payload.new as Record<string, unknown>)),
+    )
+    .subscribe()
+  return () => {
+    sb.removeChannel(ch)
+  }
+}
+
+// ── Leaderboard ──────────────────────────────────────────────────────────────
+export async function fetchLeaderboard(limit = 10): Promise<LeaderRow[]> {
+  if (!supabase) return []
+  const { data } = await supabase.rpc('leaderboard', { p_limit: limit })
+  return (data ?? []).map((r: Record<string, unknown>) => ({
+    ownerName: String(r.owner_name ?? 'Neighbour'),
+    given: Number(r.given ?? 0),
+    co2: Number(r.co2 ?? 0),
+  }))
 }
 
 const EMBED_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/embed`

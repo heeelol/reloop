@@ -1,10 +1,20 @@
+import type { ReactNode } from 'react'
+
 interface Props {
   onPost: () => void
   name?: string
   onEditProfile?: () => void
+  onLeaderboard?: () => void
+  bell?: ReactNode
 }
 
-export default function Header({ onPost, name, onEditProfile }: Props) {
+export default function Header({
+  onPost,
+  name,
+  onEditProfile,
+  onLeaderboard,
+  bell,
+}: Props) {
   return (
     <header className="flex items-center justify-between border-b border-loop-100 bg-white px-4 py-3 shadow-sm sm:px-6">
       <div className="flex items-center gap-2.5">
@@ -21,6 +31,16 @@ export default function Header({ onPost, name, onEditProfile }: Props) {
         </div>
       </div>
       <div className="flex items-center gap-2">
+        {onLeaderboard && (
+          <button
+            onClick={onLeaderboard}
+            title="Leaderboard"
+            className="hidden h-9 w-9 place-items-center rounded-full border border-gray-200 text-base hover:bg-gray-50 sm:grid"
+          >
+            🏆
+          </button>
+        )}
+        {bell}
         {onEditProfile && (
           <button
             onClick={onEditProfile}

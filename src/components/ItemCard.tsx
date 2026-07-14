@@ -7,6 +7,8 @@ interface Props {
   item: Item
   distanceKm: number | null
   selected: boolean
+  isFav?: boolean
+  onToggleFav?: () => void
   onSelect: () => void
   onClaim: () => void
 }
@@ -15,6 +17,8 @@ export default function ItemCard({
   item,
   distanceKm,
   selected,
+  isFav,
+  onToggleFav,
   onSelect,
   onClaim,
 }: Props) {
@@ -41,6 +45,18 @@ export default function ItemCard({
           <div className="absolute inset-0 grid place-items-center bg-black/45 text-[11px] font-semibold uppercase tracking-wide text-white">
             Claimed
           </div>
+        )}
+        {onToggleFav && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onToggleFav()
+            }}
+            title={isFav ? 'Remove from saved' : 'Save'}
+            className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-white/85 text-xs shadow-sm backdrop-blur transition hover:bg-white"
+          >
+            {isFav ? '❤️' : '🤍'}
+          </button>
         )}
       </div>
 
