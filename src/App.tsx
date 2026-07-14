@@ -206,7 +206,11 @@ export default function App() {
   async function handleClaim(id: string) {
     const it = items.find((i) => i.id === id) ?? myItems.find((i) => i.id === id)
     setItems((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, status: 'claimed' as const } : i)),
+      prev.map((i) =>
+        i.id === id
+          ? { ...i, status: 'claimed' as const, claimedById: userId }
+          : i,
+      ),
     )
     if (hasSupabase) {
       try {
@@ -348,8 +352,9 @@ export default function App() {
   }, [items])
 
   const showSeed = hasSupabase && !!userLoc && items.length === 0
+  // Prefer the "mine" copy — it carries authoritative owner/claimer ids.
   const detailItem =
-    [...items, ...myItems].find((i) => i.id === detailId) ?? null
+    [...myItems, ...items].find((i) => i.id === detailId) ?? null
 
   return (
     <div className="flex h-screen flex-col overflow-hidden">
