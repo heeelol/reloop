@@ -6,19 +6,30 @@ import { celebrate } from './lib/celebrate'
 import {
   claimItem,
   createItem,
+  deleteItem,
   ensureAuth,
   fetchItemsNear,
+  fetchMyItems,
+  releaseClaim,
   seedNearby,
   subscribeItems,
   subscribePresence,
   uploadPhoto,
 } from './lib/api'
+import {
+  getName,
+  hasOnboarded,
+  setName as persistName,
+  setOnboarded,
+} from './lib/profile'
 import Header from './components/Header'
 import ImpactBar from './components/ImpactBar'
 import Feed from './components/Feed'
+import MyItems from './components/MyItems'
 import MapView from './components/MapView'
 import PostItemModal from './components/PostItemModal'
 import ItemDrawer from './components/ItemDrawer'
+import OnboardingModal from './components/OnboardingModal'
 import ErrorBoundary from './components/ErrorBoundary'
 
 // Fallback center (used until geolocation resolves): central San Francisco.
@@ -35,19 +46,31 @@ export default function App() {
   const [items, setItems] = useState<Item[]>(() =>
     hasSupabase ? [] : generateMockItems(DEFAULT_CENTER[0], DEFAULT_CENTER[1]),
   )
+  const [myItems, setMyItems] = useState<Item[]>([])
   const [userId, setUserId] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [detailId, setDetailId] = useState<string | null>(null)
   const [showPost, setShowPost] = useState(false)
   const [showHeat, setShowHeat] = useState(false)
   const [seeding, setSeeding] = useState(false)
+  const [loading, setLoading] = useState(hasSupabase)
   const [mobileView, setMobileView] = useState<'list' | 'map'>('list')
+  const [tab, setTab] = useState<'browse' | 'mine'>('browse')
   const [toast, setToast] = useState<string | null>(null)
   const [presenceCount, setPresenceCount] = useState(0)
   const [recentIds, setRecentIds] = useState<Set<string>>(new Set())
   const [radiusKm, setRadiusKm] = useState(8)
+  const [name, setName] = useState<string>(() => getName())
+  const [showProfile, setShowProfile] = useState(false)
+  const [firstVisit, setFirstVisit] = useState(false)
   const toastTimer = useRef<number>(0)
   const recentTimers = useRef<Record<string, number>>({})
+
+  function flash(msg: string) {
+    setToast(msg)
+    window.clearTimeout(toastTimer.current)
+    toastTimer.current = window.setTimeout(() => setToast(null), 2600)
+  }
 
   // Flag an item as just-arrived so its map marker plays the drop animation.
   function markRecent(id: string) {
@@ -61,6 +84,14 @@ export default function App() {
       })
     }, 1400)
   }
+
+  // First-visit welcome (also collects a display name).
+  useEffect(() => {
+    if (!hasOnboarded()) {
+      setFirstVisit(true)
+      setShowProfile(true)
+    }
+  }, [])
 
   // Resolve location, sign in (anon), load nearby items, and subscribe to
   // live updates. Falls back to local mock data when there's no backend.
@@ -76,6 +107,7 @@ export default function App() {
         const id = await ensureAuth()
         setUserId(id)
         setItems(await fetchItemsNear(loc[0], loc[1]))
+        setLoading(false)
         unsub = subscribeItems(
           (it) => {
             markRecent(it.id)
@@ -83,8 +115,15 @@ export default function App() {
               prev.some((p) => p.id === it.id) ? prev : [it, ...prev],
             )
           },
-          (it) =>
-            setItems((prev) => prev.map((p) => (p.id === it.id ? it : p))),
+          (it) => {
+            setItems((prev) => prev.map((p) => (p.id === it.id ? it : p)))
+            setMyItems((prev) => prev.map((p) => (p.id === it.id ? it : p)))
+            // Someone reserved an item you posted → celebrate for the owner.
+            if (it.ownerId && it.ownerId === id && it.status === 'claimed') {
+              celebrate()
+              flash(`🎉 A neighbour reserved your “${it.title}”!`)
+            }
+          },
         )
       } else {
         setItems((prev) => {
@@ -111,6 +150,11 @@ export default function App() {
   // Live presence — how many people are browsing right now.
   useEffect(() => subscribePresence(setPresenceCount), [])
 
+  // Load the user's own items (for the Mine tab + count).
+  useEffect(() => {
+    if (userId) fetchMyItems(userId).then(setMyItems)
+  }, [userId, tab])
+
   // Re-run the PostGIS radius search when the user drags the radius slider.
   const firstRadius = useRef(true)
   useEffect(() => {
@@ -125,22 +169,31 @@ export default function App() {
     return () => window.clearTimeout(t)
   }, [radiusKm, userLoc])
 
-  function flash(msg: string) {
-    setToast(msg)
-    window.clearTimeout(toastTimer.current)
-    toastTimer.current = window.setTimeout(() => setToast(null), 2600)
+  // Esc closes the drawer / post modal.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      if (detailId) setDetailId(null)
+      else if (showPost) setShowPost(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [detailId, showPost])
+
+  async function refreshMine() {
+    if (userId) setMyItems(await fetchMyItems(userId))
   }
 
   async function handleClaim(id: string) {
-    const it = items.find((i) => i.id === id)
-    // Optimistic update for snappy UX.
+    const it = items.find((i) => i.id === id) ?? myItems.find((i) => i.id === id)
     setItems((prev) =>
       prev.map((i) => (i.id === id ? { ...i, status: 'claimed' as const } : i)),
     )
     if (hasSupabase) {
       try {
         await claimItem(id)
-      } catch (e) {
+        refreshMine()
+      } catch {
         flash('Sorry — someone just claimed that one.')
         setItems((prev) =>
           prev.map((i) =>
@@ -154,29 +207,63 @@ export default function App() {
     if (it) flash(`Reserved “${it.title}” — ${it.co2Saved} kg CO₂ saved 🌱`)
   }
 
+  async function handleRelease(id: string) {
+    if (hasSupabase) {
+      try {
+        await releaseClaim(id)
+      } catch {
+        flash('Could not release that.')
+        return
+      }
+    }
+    const back = (i: Item) =>
+      i.id === id ? { ...i, status: 'available' as const, claimedById: null } : i
+    setItems((prev) => prev.map(back))
+    setMyItems((prev) => prev.map(back))
+    flash('Released — back on the map for someone else')
+  }
+
+  async function handleDelete(id: string) {
+    if (hasSupabase) {
+      try {
+        await deleteItem(id)
+      } catch {
+        flash('Could not remove that.')
+        return
+      }
+    }
+    setItems((prev) => prev.filter((i) => i.id !== id))
+    setMyItems((prev) => prev.filter((i) => i.id !== id))
+    if (detailId === id) setDetailId(null)
+    flash('Listing removed')
+  }
+
   async function handlePost(
     data: Omit<Item, 'id' | 'createdAt' | 'status'>,
     file: File | null,
   ) {
+    const ownerName = name || 'Neighbour'
     if (hasSupabase && userId) {
       try {
         const imageUrl =
           file && !data.imageUrl.startsWith('http')
             ? await uploadPhoto(file, userId)
             : data.imageUrl
-        const item = await createItem({ ...data, imageUrl }, userId)
+        const item = await createItem({ ...data, imageUrl, ownerName }, userId)
         setItems((prev) =>
           prev.some((p) => p.id === item.id) ? prev : [item, ...prev],
         )
         setSelectedId(item.id)
         markRecent(item.id)
-      } catch (e) {
+        refreshMine()
+      } catch {
         flash('Could not post — please try again.')
         return
       }
     } else {
       const item: Item = {
         ...data,
+        ownerName,
         id: `user-${Date.now()}`,
         createdAt: new Date().toISOString(),
         status: 'available',
@@ -204,6 +291,14 @@ export default function App() {
     }
   }
 
+  function saveProfile(newName: string) {
+    persistName(newName)
+    setName(newName)
+    setOnboarded()
+    setShowProfile(false)
+    setFirstVisit(false)
+  }
+
   const stats = useMemo(() => {
     const claimed = items.filter((i) => i.status === 'claimed')
     const active = items.filter((i) => i.status === 'available').length
@@ -216,10 +311,23 @@ export default function App() {
   }, [items])
 
   const showSeed = hasSupabase && !!userLoc && items.length === 0
+  const detailItem =
+    [...items, ...myItems].find((i) => i.id === detailId) ?? null
 
   return (
     <div className="flex h-screen flex-col overflow-hidden">
-      <Header onPost={() => setShowPost(true)} />
+      <Header
+        onPost={() => setShowPost(true)}
+        name={name}
+        onEditProfile={
+          hasSupabase
+            ? () => {
+                setFirstVisit(false)
+                setShowProfile(true)
+              }
+            : undefined
+        }
+      />
       <ImpactBar {...stats} />
 
       {/* Mobile view toggle */}
@@ -239,20 +347,43 @@ export default function App() {
 
       <main className="flex min-h-0 flex-1">
         <section
-          className={`w-full border-r border-gray-100 bg-white lg:w-[380px] lg:shrink-0 ${
+          className={`flex w-full flex-col border-r border-gray-100 bg-white lg:w-[380px] lg:shrink-0 ${
             mobileView === 'list' ? 'block' : 'hidden'
-          } lg:block`}
+          } lg:flex`}
         >
-          <Feed
-            items={items}
-            userLoc={userLoc}
-            selectedId={selectedId}
-            onSelect={(id) => {
-              setSelectedId(id)
-              setDetailId(id)
-            }}
-            onClaim={handleClaim}
-          />
+          {hasSupabase && (
+            <div className="flex gap-1 border-b border-gray-100 p-2">
+              <TabButton active={tab === 'browse'} onClick={() => setTab('browse')}>
+                Browse
+              </TabButton>
+              <TabButton active={tab === 'mine'} onClick={() => setTab('mine')}>
+                Mine{myItems.length > 0 ? ` · ${myItems.length}` : ''}
+              </TabButton>
+            </div>
+          )}
+          <div className="min-h-0 flex-1">
+            {tab === 'browse' ? (
+              <Feed
+                items={items}
+                userLoc={userLoc}
+                selectedId={selectedId}
+                loading={loading}
+                onSelect={(id) => {
+                  setSelectedId(id)
+                  setDetailId(id)
+                }}
+                onClaim={handleClaim}
+              />
+            ) : (
+              <MyItems
+                items={myItems}
+                userId={userId}
+                onRelease={handleRelease}
+                onDelete={handleDelete}
+                onSelect={setDetailId}
+              />
+            )}
+          </div>
         </section>
 
         <section
@@ -331,12 +462,20 @@ export default function App() {
 
       {detailId && (
         <ItemDrawer
-          item={items.find((i) => i.id === detailId) ?? null}
+          item={detailItem}
           userLoc={userLoc}
           onClose={() => setDetailId(null)}
           onClaim={handleClaim}
         />
       )}
+
+      <OnboardingModal
+        open={showProfile}
+        firstVisit={firstVisit}
+        initialName={name}
+        onSave={saveProfile}
+        onClose={() => setShowProfile(false)}
+      />
 
       {toast && (
         <div className="fixed bottom-5 left-1/2 z-[1100] -translate-x-1/2 animate-[fadeIn_0.25s_ease] rounded-full bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow-lg">
@@ -344,5 +483,26 @@ export default function App() {
         </div>
       )}
     </div>
+  )
+}
+
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean
+  onClick: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex-1 rounded-lg py-1.5 text-sm font-semibold transition ${
+        active ? 'bg-loop-100 text-loop-700' : 'text-gray-500 hover:bg-gray-50'
+      }`}
+    >
+      {children}
+    </button>
   )
 }
