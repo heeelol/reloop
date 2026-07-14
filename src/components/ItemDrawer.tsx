@@ -110,7 +110,7 @@ export default function ItemDrawer({ item, userLoc, onClose, onClaim }: Props) {
               style={{ height: '100%', width: '100%' }}
             >
               <TileLayer
-                url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
                 attribution="&copy; CARTO"
               />
               <Marker position={[item.lat, item.lng]} icon={pin(item)} />

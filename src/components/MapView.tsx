@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { memo, useEffect, useMemo, useRef } from 'react'
 import {
   MapContainer,
   TileLayer,
@@ -48,11 +48,15 @@ function FlyToSelected({
   selectedId: string | null
 }) {
   const map = useMap()
+  // Keep the latest items without making them a trigger — otherwise every data
+  // update (realtime, claim) re-fires flyTo and the map feels jumpy/unresponsive.
+  const itemsRef = useRef(items)
+  itemsRef.current = items
   useEffect(() => {
     if (!selectedId) return
-    const it = items.find((i) => i.id === selectedId)
+    const it = itemsRef.current.find((i) => i.id === selectedId)
     if (it) map.flyTo([it.lat, it.lng], Math.max(map.getZoom(), 15), { duration: 0.6 })
-  }, [selectedId, items, map])
+  }, [selectedId, map])
   return null
 }
 
@@ -82,7 +86,7 @@ function HeatLayer({ items, show }: { items: Item[]; show: boolean }) {
   return null
 }
 
-export default function MapView({
+function MapView({
   items,
   center,
   userLoc,
@@ -155,7 +159,10 @@ export default function MapView({
     >
       <TileLayer
         attribution='&copy; <a href="https://carto.com/">CARTO</a> &copy; OpenStreetMap contributors'
-        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
+        updateWhenIdle
+        updateWhenZooming={false}
+        keepBuffer={2}
       />
       <HeatLayer items={items} show={showHeat} />
       <FlyToSelected items={items} selectedId={selectedId} />
@@ -177,3 +184,5 @@ export default function MapView({
     </MapContainer>
   )
 }
+
+export default memo(MapView)
