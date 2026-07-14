@@ -271,7 +271,7 @@ export default function App() {
             onOpenDetails={setDetailId}
           />
           {hasSupabase && presenceCount > 0 && (
-            <div className="absolute left-3 top-3 z-[500] flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-md backdrop-blur">
+            <div className="absolute left-1/2 top-3 z-[500] flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-md backdrop-blur">
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-loop-400 opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-loop-500" />
