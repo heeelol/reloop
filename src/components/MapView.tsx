@@ -65,22 +65,45 @@ function HeatLayer({ items, show }: { items: Item[]; show: boolean }) {
   const map = useMap()
   useEffect(() => {
     if (!show) return
+    // leaflet.heat augments L at runtime; it has no bundled types. Guard in case
+    // the plugin didn't attach (older bundlers / non-Chromium engines).
+    const heat = (
+      L as unknown as {
+        heatLayer?: (
+          pts: [number, number, number][],
+          opts: Record<string, unknown>,
+        ) => L.Layer
+      }
+    ).heatLayer
+    if (typeof heat !== 'function') return
     const points = items
       .filter((i) => i.status === 'available')
-      .map((i) => [i.lat, i.lng, Math.min(1, i.co2Saved / 30)] as [number, number, number])
-    // leaflet.heat augments L at runtime; it has no bundled types.
-    const heat = (L as unknown as {
-      heatLayer: (pts: [number, number, number][], opts: Record<string, unknown>) => L.Layer
-    }).heatLayer
-    const layer = heat(points, {
-      radius: 45,
-      blur: 30,
-      maxZoom: 17,
-      gradient: { 0.2: '#aaefca', 0.5: '#38c988', 0.8: '#078d59', 1: '#05714a' },
-    })
-    layer.addTo(map)
+      .map(
+        (i) =>
+          [i.lat, i.lng, Math.min(1, i.co2Saved / 30)] as [
+            number,
+            number,
+            number,
+          ],
+      )
+    let layer: L.Layer | null = null
+    try {
+      layer = heat(points, {
+        radius: 45,
+        blur: 30,
+        maxZoom: 17,
+        gradient: { 0.2: '#aaefca', 0.5: '#38c988', 0.8: '#078d59', 1: '#05714a' },
+      })
+      layer.addTo(map)
+    } catch (e) {
+      console.warn('heatmap failed:', e)
+    }
     return () => {
-      layer.remove()
+      try {
+        layer?.remove()
+      } catch {
+        /* ignore */
+      }
     }
   }, [items, show, map])
   return null

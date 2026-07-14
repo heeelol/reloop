@@ -19,6 +19,7 @@ import Feed from './components/Feed'
 import MapView from './components/MapView'
 import PostItemModal from './components/PostItemModal'
 import ItemDrawer from './components/ItemDrawer'
+import ErrorBoundary from './components/ErrorBoundary'
 
 // Fallback center (used until geolocation resolves): central San Francisco.
 const DEFAULT_CENTER: [number, number] = [37.7749, -122.4194]
@@ -259,17 +260,19 @@ export default function App() {
             mobileView === 'map' ? 'block' : 'hidden'
           } lg:block`}
         >
-          <MapView
-            items={items}
-            center={center}
-            userLoc={userLoc}
-            selectedId={selectedId}
-            showHeat={showHeat}
-            radiusM={radiusKm * 1000}
-            recentIds={recentIds}
-            onSelect={setSelectedId}
-            onOpenDetails={setDetailId}
-          />
+          <ErrorBoundary>
+            <MapView
+              items={items}
+              center={center}
+              userLoc={userLoc}
+              selectedId={selectedId}
+              showHeat={showHeat}
+              radiusM={radiusKm * 1000}
+              recentIds={recentIds}
+              onSelect={setSelectedId}
+              onOpenDetails={setDetailId}
+            />
+          </ErrorBoundary>
           {hasSupabase && presenceCount > 0 && (
             <div className="absolute left-1/2 top-3 z-[500] flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-md backdrop-blur">
               <span className="relative flex h-2 w-2">

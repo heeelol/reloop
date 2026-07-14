@@ -156,7 +156,7 @@ export function subscribeItems(
   if (!supabase) return () => {}
   const sb = supabase
   const channel = sb
-    .channel('public:items')
+    .channel(`public:items:${Math.random().toString(36).slice(2)}`)
     .on(
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'items' },
