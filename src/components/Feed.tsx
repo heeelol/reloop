@@ -10,6 +10,7 @@ interface Props {
   items: Item[]
   userLoc: [number, number] | null
   selectedId: string | null
+  loading?: boolean
   onSelect: (id: string) => void
   onClaim: (id: string) => void
 }
@@ -20,6 +21,7 @@ export default function Feed({
   items,
   userLoc,
   selectedId,
+  loading,
   onSelect,
   onClaim,
 }: Props) {
@@ -147,7 +149,22 @@ export default function Feed({
       </div>
 
       <div className="flex-1 space-y-2 overflow-y-auto p-3">
-        {shown.length === 0 && (
+        {loading &&
+          shown.length === 0 &&
+          Array.from({ length: 5 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex animate-pulse gap-3 rounded-xl border border-gray-100 p-2.5"
+            >
+              <div className="h-20 w-20 shrink-0 rounded-lg bg-gray-200" />
+              <div className="flex-1 space-y-2 py-1">
+                <div className="h-3 w-2/3 rounded bg-gray-200" />
+                <div className="h-3 w-1/2 rounded bg-gray-100" />
+                <div className="h-3 w-1/3 rounded bg-gray-100" />
+              </div>
+            </div>
+          ))}
+        {!loading && shown.length === 0 && (
           <p className="py-10 text-center text-sm text-gray-400">
             {query.trim()
               ? 'No matches — try describing it differently.'

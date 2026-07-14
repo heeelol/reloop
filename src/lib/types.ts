@@ -23,6 +23,8 @@ export interface Item {
   status: ItemStatus
   createdAt: string // ISO
   ownerName: string
+  ownerId?: string | null
+  claimedById?: string | null
 }
 
 export interface AiAnalysis {

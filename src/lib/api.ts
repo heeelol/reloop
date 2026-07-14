@@ -17,7 +17,39 @@ function rowToItem(r: Record<string, unknown>): Item {
     status: (r.status as Item['status']) ?? 'available',
     createdAt: String(r.created_at),
     ownerName: String(r.owner_name ?? 'Neighbour'),
+    ownerId: (r.owner_id as string | null) ?? null,
+    claimedById: (r.claimed_by as string | null) ?? null,
   }
+}
+
+/** Items the current user posted or reserved (for the "Mine" tab). */
+export async function fetchMyItems(userId: string): Promise<Item[]> {
+  if (!supabase) return []
+  const { data, error } = await supabase
+    .from('items')
+    .select('*')
+    .or(`owner_id.eq.${userId},claimed_by.eq.${userId}`)
+    .order('created_at', { ascending: false })
+  if (error) {
+    console.warn('fetchMyItems failed:', error.message)
+    return []
+  }
+  return (data ?? []).map(rowToItem)
+}
+
+/** Release a reservation you made — puts the item back on the map. */
+export async function releaseClaim(id: string): Promise<Item> {
+  if (!supabase) throw new Error('No backend')
+  const { data, error } = await supabase.rpc('release_claim', { p_item_id: id })
+  if (error) throw error
+  return rowToItem(Array.isArray(data) ? data[0] : data)
+}
+
+/** Remove one of your own listings. */
+export async function deleteItem(id: string): Promise<void> {
+  if (!supabase) throw new Error('No backend')
+  const { error } = await supabase.from('items').delete().eq('id', id)
+  if (error) throw error
 }
 
 const EMBED_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/embed`

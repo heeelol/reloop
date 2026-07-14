@@ -1,8 +1,10 @@
 interface Props {
   onPost: () => void
+  name?: string
+  onEditProfile?: () => void
 }
 
-export default function Header({ onPost }: Props) {
+export default function Header({ onPost, name, onEditProfile }: Props) {
   return (
     <header className="flex items-center justify-between border-b border-loop-100 bg-white px-4 py-3 shadow-sm sm:px-6">
       <div className="flex items-center gap-2.5">
@@ -18,12 +20,28 @@ export default function Header({ onPost }: Props) {
           </p>
         </div>
       </div>
-      <button
-        onClick={onPost}
-        className="rounded-full bg-loop-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-loop-600 active:scale-95"
-      >
-        + Give away
-      </button>
+      <div className="flex items-center gap-2">
+        {onEditProfile && (
+          <button
+            onClick={onEditProfile}
+            title="Edit your name"
+            className="flex items-center gap-1.5 rounded-full border border-gray-200 py-1.5 pl-1.5 pr-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+          >
+            <span className="grid h-6 w-6 place-items-center rounded-full bg-loop-100 text-xs font-bold text-loop-700">
+              {name ? name.charAt(0).toUpperCase() : '?'}
+            </span>
+            <span className="hidden max-w-[100px] truncate sm:inline">
+              {name || 'Set name'}
+            </span>
+          </button>
+        )}
+        <button
+          onClick={onPost}
+          className="rounded-full bg-loop-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-loop-600 active:scale-95"
+        >
+          + Give away
+        </button>
+      </div>
     </header>
   )
 }
