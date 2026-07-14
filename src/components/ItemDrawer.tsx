@@ -62,7 +62,6 @@ export default function ItemDrawer({
       <div
         className="flex h-full w-full max-w-md animate-[slideIn_0.25s_ease] flex-col overflow-hidden bg-white shadow-2xl"
         onClick={(e) => e.stopPropagation()}
-        data-debug={`owner:${isOwner} claimer:${isClaimer} status:${item.status} u:${userId ?? 'null'} cb:${item.claimedById ?? 'null'}`}
       >
         <div className="relative h-64 shrink-0 bg-gray-100">
           <img
