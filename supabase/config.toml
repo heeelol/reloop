@@ -1,0 +1,4 @@
+project_id = "reloop"
+
+[functions.analyze]
+verify_jwt = false

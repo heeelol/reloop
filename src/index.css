@@ -1,0 +1,66 @@
+@import 'tailwindcss';
+@import 'leaflet/dist/leaflet.css';
+
+@theme {
+  --color-loop-50: #edfcf4;
+  --color-loop-100: #d3f8e2;
+  --color-loop-200: #aaefca;
+  --color-loop-300: #72e0ac;
+  --color-loop-400: #38c988;
+  --color-loop-500: #14b06e;
+  --color-loop-600: #078d59;
+  --color-loop-700: #05714a;
+  --color-loop-800: #08593c;
+  --color-loop-900: #084932;
+}
+
+:root {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: #f6f8f7;
+}
+
+/* Leaflet marker pins */
+.loop-pin {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  font-size: 18px;
+  background: #fff;
+  border: 2px solid var(--color-loop-500);
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+}
+.loop-pin.claimed {
+  border-color: #9ca3af;
+  opacity: 0.6;
+}
+.loop-pin > span {
+  transform: rotate(45deg);
+}
+.leaflet-container {
+  font-family: inherit;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
