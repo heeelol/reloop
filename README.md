@@ -2,6 +2,10 @@
 
 **Give it away, keep it local, keep it out of landfill.**
 
+![ReLoop — hyperlocal give-away map](docs/cover.png)
+
+🔗 **Live app:** https://reloop-six-beta.vercel.app
+
 ReLoop is a hyperlocal give-away map. Instead of throwing usable things in the
 bin, neighbours post them with a photo; anyone nearby can claim and collect them.
 An AI vision model identifies each item and estimates the CO₂ kept out of the
