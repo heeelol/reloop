@@ -21,6 +21,7 @@ interface Props {
   selectedId: string | null
   showHeat: boolean
   onSelect: (id: string) => void
+  onOpenDetails?: (id: string) => void
 }
 
 function pinIcon(item: Item): L.DivIcon {
@@ -86,6 +87,7 @@ export default function MapView({
   selectedId,
   showHeat,
   onSelect,
+  onOpenDetails,
 }: Props) {
   const markers = useMemo(
     () =>
@@ -114,12 +116,30 @@ export default function MapView({
                 {it.status === 'claimed' && (
                   <div style={{ fontSize: 12, color: '#9ca3af' }}>Claimed</div>
                 )}
+                {onOpenDetails && (
+                  <button
+                    onClick={() => onOpenDetails(it.id)}
+                    style={{
+                      marginTop: 6,
+                      background: '#14b06e',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 999,
+                      padding: '3px 10px',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    View details →
+                  </button>
+                )}
               </div>
             </Popup>
           </Marker>
         )
       }),
-    [items, userLoc, onSelect],
+    [items, userLoc, onSelect, onOpenDetails],
   )
 
   return (
