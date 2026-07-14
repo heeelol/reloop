@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Item } from './lib/types'
 import { generateMockItems } from './lib/mock'
 import { hasSupabase } from './lib/supabase'
+import { celebrate } from './lib/celebrate'
 import {
   claimItem,
   createItem,
@@ -16,6 +17,7 @@ import ImpactBar from './components/ImpactBar'
 import Feed from './components/Feed'
 import MapView from './components/MapView'
 import PostItemModal from './components/PostItemModal'
+import ItemDrawer from './components/ItemDrawer'
 
 // Fallback center (used until geolocation resolves): central San Francisco.
 const DEFAULT_CENTER: [number, number] = [37.7749, -122.4194]
@@ -33,6 +35,7 @@ export default function App() {
   )
   const [userId, setUserId] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [detailId, setDetailId] = useState<string | null>(null)
   const [showPost, setShowPost] = useState(false)
   const [showHeat, setShowHeat] = useState(false)
   const [seeding, setSeeding] = useState(false)
@@ -109,6 +112,7 @@ export default function App() {
         return
       }
     }
+    celebrate()
     if (it) flash(`Reserved “${it.title}” — ${it.co2Saved} kg CO₂ saved 🌱`)
   }
 
@@ -205,7 +209,7 @@ export default function App() {
             selectedId={selectedId}
             onSelect={(id) => {
               setSelectedId(id)
-              setMobileView('map')
+              setDetailId(id)
             }}
             onClaim={handleClaim}
           />
@@ -223,6 +227,7 @@ export default function App() {
             selectedId={selectedId}
             showHeat={showHeat}
             onSelect={setSelectedId}
+            onOpenDetails={setDetailId}
           />
           <button
             onClick={() => setShowHeat((v) => !v)}
@@ -251,6 +256,15 @@ export default function App() {
           userLoc={userLoc}
           onClose={() => setShowPost(false)}
           onSubmit={handlePost}
+        />
+      )}
+
+      {detailId && (
+        <ItemDrawer
+          item={items.find((i) => i.id === detailId) ?? null}
+          userLoc={userLoc}
+          onClose={() => setDetailId(null)}
+          onClaim={handleClaim}
         />
       )}
 

@@ -2,3 +2,6 @@ project_id = "reloop"
 
 [functions.analyze]
 verify_jwt = false
+
+[functions.embed]
+verify_jwt = false
