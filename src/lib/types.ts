@@ -32,6 +32,8 @@ export interface AiAnalysis {
   title: string
   co2Saved: number
   reason: string
+  condition?: 'like new' | 'good' | 'worn'
+  confidence?: number // 0–1, model's self-reported classification confidence
 }
 
 export type NotificationType = 'match' | 'claim' | 'message'

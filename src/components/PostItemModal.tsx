@@ -122,12 +122,31 @@ export default function PostItemModal({ userLoc, onClose, onSubmit }: Props) {
           {/* AI result card */}
           {ai && (
             <div className="animate-[fadeIn_0.3s_ease] rounded-xl border border-loop-200 bg-loop-50 p-3.5">
-              <div className="mb-1.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-loop-700">
+              <div className="mb-1.5 flex items-center justify-between text-xs font-bold uppercase tracking-wide text-loop-700">
                 <span>✨ AI analysis</span>
+                {ai.confidence != null && (
+                  <span
+                    title="Model's self-reported classification confidence (structured JSON output)"
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-bold tracking-normal ${
+                      ai.confidence >= 0.75
+                        ? 'bg-loop-100 text-loop-700'
+                        : ai.confidence >= 0.5
+                          ? 'bg-amber-100 text-amber-700'
+                          : 'bg-gray-200 text-gray-600'
+                    }`}
+                  >
+                    {Math.round(ai.confidence * 100)}% confident
+                  </span>
+                )}
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm font-semibold text-gray-800">
                   {CATEGORY_EMOJI[ai.category]} {ai.category}
+                  {ai.condition && (
+                    <span className="ml-1.5 rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-gray-500">
+                      {ai.condition}
+                    </span>
+                  )}
                 </span>
                 <span className="rounded-full bg-loop-600 px-2.5 py-0.5 text-xs font-bold text-white">
                   saves {formatCo2(ai.co2Saved)} CO₂

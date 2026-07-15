@@ -53,3 +53,23 @@ export function co2Equivalent(kg: number): string {
   const phoneCharges = kg / 0.008 // ~8 g CO2e per smartphone charge
   return `≈ ${Math.round(phoneCharges)} phone charges`
 }
+
+// Rotating relatable equivalents, computed from published factors so the
+// numbers are defensible under questioning. Sources rendered in the UI:
+//   EPA Greenhouse Gas Equivalencies — 0.393 kg CO₂/mile driven,
+//   ~0.0124 kg/smartphone charge, urban tree ≈ 6 kg sequestered/year.
+export function co2Equivalents(kg: number): string[] {
+  const out: string[] = []
+  const miles = kg / 0.393
+  if (miles >= 1) out.push(`≈ ${Math.round(miles).toLocaleString()} miles not driven`)
+  const treeYears = kg / 6
+  if (treeYears >= 1)
+    out.push(`≈ ${Math.round(treeYears).toLocaleString()} trees working for a year`)
+  const charges = kg / 0.0124
+  if (charges >= 1)
+    out.push(`≈ ${Math.round(charges).toLocaleString()} phone charges`)
+  const carYears = kg / 4290 // EPA: 4,290 kg = one car off the road for a year
+  if (carYears >= 1)
+    out.push(`≈ ${carYears.toFixed(1)} cars off the road for a year`)
+  return out.length ? out : [co2Equivalent(kg)]
+}

@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
               'You identify second-hand household items from a photo so a neighbour can give them away. ' +
               `Reply with strict JSON only: {"category": one of ${JSON.stringify(
                 CATEGORIES,
-              )}, "title": short listing title (max 6 words), "condition": one of ["like new","good","worn"], "reason": one short sentence a giver would find friendly}. ` +
+              )}, "title": short listing title (max 6 words), "condition": one of ["like new","good","worn"], "confidence": number between 0 and 1 for how sure you are of the category, "reason": one short sentence a giver would find friendly}. ` +
               'Pick the single best category. Do not include any other keys.',
           },
           {
@@ -108,14 +108,26 @@ Deno.serve(async (req) => {
       : 'Other'
 
     const condition =
-      typeof parsed.condition === 'string' ? parsed.condition : 'good'
+      parsed.condition === 'like new' ||
+      parsed.condition === 'good' ||
+      parsed.condition === 'worn'
+        ? parsed.condition
+        : 'good'
     // Slightly discount worn items — reuse value is a bit lower.
     const conditionFactor =
       condition === 'like new' ? 1 : condition === 'worn' ? 0.75 : 0.9
     const co2Saved = Math.round(CO2[category] * conditionFactor * 10) / 10
 
+    // Clamp the model's self-reported confidence to [0,1]; default mid-high.
+    const confidence =
+      typeof parsed.confidence === 'number' && isFinite(parsed.confidence)
+        ? Math.max(0, Math.min(1, parsed.confidence))
+        : 0.8
+
     return json({
       category,
+      condition,
+      confidence,
       title:
         typeof parsed.title === 'string' && parsed.title.trim()
           ? parsed.title.trim()

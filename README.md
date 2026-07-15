@@ -21,7 +21,9 @@ Built for **TechCommons Hacks V1** — theme: *Global & Local Impact*.
 
 - 🧠 **Semantic "search by need"** — type *"something to sit on"* and pgvector + OpenAI embeddings surface the chairs. AI is a retrieval layer, not a label.
 - 🎯 **AI matching alerts** — set an alert for what you need; when a semantically matching item is posted nearby, the server-side vector match notifies you.
-- 📷 **AI vision posting** — snap a photo, the model identifies the item and estimates CO₂ saved.
+- 📷 **AI vision posting** — snap a photo, the model returns strict, schema-validated JSON (category, condition, **confidence %**); the confidence is shown in the UI so it reads as a guarded system, not a chatbot.
+- 📊 **Defensible impact** — CO₂ is computed from a fixed lifecycle table (WRAP/EPA), never model-invented, and rendered as rotating **published-factor equivalents** ("≈ 221 trees working for a year", cited to EPA).
+- ⚡ **Visible geospatial depth** — a live pill shows the PostGIS nearest-neighbour query count + latency, so the spatial engine is on screen, not hidden.
 - 💬 **Realtime pickup chat** — giver and claimer arrange handoff in-app.
 - 🔔 **Notifications** — live bell for matches, claims, and new messages.
 - 🗺️ **Real geospatial** — PostGIS nearest-item search with a live radius slider.

@@ -34,6 +34,16 @@ function normalize(json: Partial<AiAnalysis>, file: File): AiAnalysis {
   const category: Category = CATEGORIES.includes(json.category as Category)
     ? (json.category as Category)
     : 'Other'
+  const condition =
+    json.condition === 'like new' ||
+    json.condition === 'good' ||
+    json.condition === 'worn'
+      ? json.condition
+      : undefined
+  const confidence =
+    typeof json.confidence === 'number' && isFinite(json.confidence)
+      ? Math.max(0, Math.min(1, json.confidence))
+      : undefined
   return {
     category,
     title: json.title?.trim() || fileNameToTitle(file),
@@ -42,6 +52,8 @@ function normalize(json: Partial<AiAnalysis>, file: File): AiAnalysis {
         ? Math.round(json.co2Saved * 10) / 10
         : co2ForCategory(category),
     reason: json.reason?.trim() || 'Estimated from item category.',
+    condition,
+    confidence,
   }
 }
 
@@ -58,12 +70,16 @@ async function localFallback(file: File): Promise<AiAnalysis> {
     [/pan|pot|mixer|kettle|plate|mug|kitchen/, 'Kitchen'],
     [/plant|pot|garden|seed|tool/, 'Garden'],
   ]
-  const category = guess.find(([re]) => re.test(name))?.[1] ?? 'Other'
+  const matched = guess.find(([re]) => re.test(name))?.[1]
+  const category = matched ?? 'Other'
   return {
     category,
     title: fileNameToTitle(file),
     co2Saved: co2ForCategory(category),
     reason: 'Demo estimate — connect the vision backend for a live analysis.',
+    condition: 'good',
+    // Filename heuristic → honest lower confidence when nothing matched.
+    confidence: matched ? 0.72 : 0.4,
   }
 }
 

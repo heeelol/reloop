@@ -72,6 +72,9 @@ export default function App() {
   const [firstVisit, setFirstVisit] = useState(false)
   const [notifications, setNotifications] = useState<AppNotification[]>([])
   const [showLeaderboard, setShowLeaderboard] = useState(false)
+  const [geoStat, setGeoStat] = useState<{ count: number; ms: number } | null>(
+    null,
+  )
   const toastTimer = useRef<number>(0)
   const recentTimers = useRef<Record<string, number>>({})
 
@@ -115,7 +118,7 @@ export default function App() {
       if (hasSupabase) {
         const id = await ensureAuth()
         setUserId(id)
-        setItems(await fetchItemsNear(loc[0], loc[1]))
+        setItems(await loadNear(loc[0], loc[1]))
         setLoading(false)
         unsub = subscribeItems(
           (it) => {
@@ -123,6 +126,11 @@ export default function App() {
             setItems((prev) =>
               prev.some((p) => p.id === it.id) ? prev : [it, ...prev],
             )
+            // Someone else just posted nearby → announce it (drives the
+            // side-by-side realtime demo: post on A, watch it land on B).
+            if (it.ownerId && it.ownerId !== id) {
+              flash(`📍 Just posted nearby: ${it.title}`)
+            }
           },
           (it) => {
             setItems((prev) => prev.map((p) => (p.id === it.id ? it : p)))
@@ -183,7 +191,7 @@ export default function App() {
       return
     }
     const t = window.setTimeout(async () => {
-      setItems(await fetchItemsNear(userLoc[0], userLoc[1], radiusKm * 1000))
+      setItems(await loadNear(userLoc[0], userLoc[1], radiusKm * 1000))
     }, 300)
     return () => window.clearTimeout(t)
   }, [radiusKm, userLoc])
@@ -201,6 +209,15 @@ export default function App() {
 
   async function refreshMine() {
     if (userId) setMyItems(await fetchMyItems(userId))
+  }
+
+  // Wrap the PostGIS nearest-item RPC with client-side timing so we can surface
+  // the query latency in the UI — makes the geospatial depth visible on stage.
+  async function loadNear(lat: number, lng: number, r?: number) {
+    const t0 = performance.now()
+    const res = await fetchItemsNear(lat, lng, r)
+    setGeoStat({ count: res.length, ms: Math.round(performance.now() - t0) })
+    return res
   }
 
   async function handleClaim(id: string) {
@@ -464,6 +481,15 @@ export default function App() {
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-loop-500" />
               </span>
               {presenceCount} browsing now
+            </div>
+          )}
+          {hasSupabase && geoStat && (
+            <div
+              title="Live PostGIS nearest-neighbour search (ST_DWithin over a GiST index), timed client-side"
+              className="absolute left-14 top-3 z-[500] flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1.5 font-mono text-[11px] font-semibold text-gray-700 shadow-md backdrop-blur"
+            >
+              <span className="text-loop-600">⚡</span>
+              {geoStat.count} nearby · PostGIS in {geoStat.ms} ms
             </div>
           )}
           {hasSupabase && userLoc && (
