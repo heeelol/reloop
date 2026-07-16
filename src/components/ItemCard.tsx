@@ -1,5 +1,7 @@
+import { Heart } from 'lucide-react'
 import type { Item } from '../lib/types'
-import { CATEGORY_EMOJI, formatCo2 } from '../lib/impact'
+import { formatCo2 } from '../lib/impact'
+import { CATEGORY_ICON } from '../lib/icons'
 import { formatDistance } from '../lib/geo'
 import { timeAgo } from '../lib/time'
 
@@ -23,6 +25,7 @@ export default function ItemCard({
   onClaim,
 }: Props) {
   const claimed = item.status === 'claimed'
+  const CatIcon = CATEGORY_ICON[item.category]
   return (
     <div
       onClick={onSelect}
@@ -53,9 +56,12 @@ export default function ItemCard({
               onToggleFav()
             }}
             title={isFav ? 'Remove from saved' : 'Save'}
-            className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-white/85 text-xs shadow-sm backdrop-blur transition hover:bg-white"
+            className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-white/85 shadow-sm backdrop-blur transition hover:bg-white"
           >
-            {isFav ? '❤️' : '🤍'}
+            <Heart
+              size={13}
+              className={isFav ? 'fill-red-500 text-red-500' : 'text-gray-500'}
+            />
           </button>
         )}
       </div>
@@ -71,8 +77,8 @@ export default function ItemCard({
         </div>
         <p className="line-clamp-2 text-xs text-gray-500">{item.description}</p>
         <div className="mt-auto flex items-center justify-between pt-1.5 text-[11px] text-gray-500">
-          <span>
-            {CATEGORY_EMOJI[item.category]} {item.category}
+          <span className="flex items-center gap-1">
+            <CatIcon size={12} className="shrink-0" /> {item.category}
             {distanceKm !== null && <> · {formatDistance(distanceKm)}</>}
             {' · '}
             {timeAgo(item.createdAt)}

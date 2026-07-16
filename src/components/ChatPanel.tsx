@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { MessageCircle } from 'lucide-react'
 import type { ChatMessage } from '../lib/types'
 import { fetchMessages, sendMessage, subscribeMessages } from '../lib/api'
 
@@ -38,8 +39,8 @@ export default function ChatPanel({ itemId, userId }: Props) {
 
   return (
     <div className="flex flex-col rounded-xl border border-loop-200 bg-loop-50/50">
-      <div className="border-b border-loop-100 px-3 py-2 text-xs font-bold uppercase tracking-wide text-loop-700">
-        💬 Arrange pickup
+      <div className="flex items-center gap-1.5 border-b border-loop-100 px-3 py-2 text-xs font-bold uppercase tracking-wide text-loop-700">
+        <MessageCircle size={14} /> Arrange pickup
       </div>
       <div className="max-h-48 min-h-[64px] space-y-1.5 overflow-y-auto p-3">
         {msgs.length === 0 && (

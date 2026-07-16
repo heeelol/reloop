@@ -12,7 +12,8 @@ import {
 import L from 'leaflet'
 import 'leaflet.heat'
 import type { Item } from '../lib/types'
-import { CATEGORY_EMOJI, formatCo2 } from '../lib/impact'
+import { formatCo2 } from '../lib/impact'
+import { CATEGORY_PIN_SVG } from '../lib/icons'
 import { distanceKm, formatDistance } from '../lib/geo'
 import { fetchRoute } from '../lib/route'
 
@@ -34,7 +35,7 @@ function pinIcon(item: Item, isNew: boolean): L.DivIcon {
     className: '',
     html: `<div class="loop-pin${claimed ? ' claimed' : ''}${
       isNew ? ' drop' : ''
-    }"><span>${CATEGORY_EMOJI[item.category]}</span></div>`,
+    }"><span>${CATEGORY_PIN_SVG[item.category]}</span></div>`,
     iconSize: [34, 34],
     iconAnchor: [17, 34],
     popupAnchor: [0, -32],

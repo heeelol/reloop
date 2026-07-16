@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Recycle, Trophy } from 'lucide-react'
 
 interface Props {
   onPost: () => void
@@ -18,8 +19,8 @@ export default function Header({
   return (
     <header className="flex items-center justify-between border-b border-loop-100 bg-white px-4 py-3 shadow-sm sm:px-6">
       <div className="flex items-center gap-2.5">
-        <div className="grid h-9 w-9 place-items-center rounded-xl bg-loop-500 text-lg text-white shadow-sm">
-          ♻️
+        <div className="grid h-9 w-9 place-items-center rounded-xl bg-loop-500 text-white shadow-sm">
+          <Recycle size={20} strokeWidth={2.4} />
         </div>
         <div className="leading-tight">
           <h1 className="text-lg font-bold tracking-tight text-loop-800">
@@ -35,9 +36,9 @@ export default function Header({
           <button
             onClick={onLeaderboard}
             title="Leaderboard"
-            className="hidden h-9 w-9 place-items-center rounded-full border border-gray-200 text-base hover:bg-gray-50 sm:grid"
+            className="hidden h-9 w-9 place-items-center rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 sm:grid"
           >
-            🏆
+            <Trophy size={17} />
           </button>
         )}
         {bell}

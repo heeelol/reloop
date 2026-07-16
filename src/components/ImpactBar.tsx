@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useCountUp } from '../hooks/useCountUp'
 import { co2Equivalents, formatCo2 } from '../lib/impact'
+import { EQUIVALENT_ICON } from '../lib/icons'
 
 interface Props {
   totalCo2: number
@@ -65,6 +66,7 @@ export default function ImpactBar({ totalCo2, rehomed, active }: Props) {
     return () => window.clearInterval(t)
   }, [equivalents.length])
   const equivalent = equivalents[eqIdx % equivalents.length]
+  const EqIcon = equivalent ? EQUIVALENT_ICON[equivalent.icon] : null
 
   return (
     <div className="flex items-center gap-6 border-b border-loop-100 bg-loop-50/70 px-4 py-3 sm:gap-10 sm:px-6">
@@ -80,13 +82,16 @@ export default function ImpactBar({ totalCo2, rehomed, active }: Props) {
         <span className="text-xs font-medium text-gray-600">
           CO₂ kept out of the air
         </span>
-        <span
-          key={equivalent}
-          className="animate-[fadeIn_0.4s_ease] text-[11px] font-medium text-loop-600"
-          title="Computed from EPA Greenhouse Gas Equivalencies + WRAP lifecycle factors"
-        >
-          {equivalent}
-        </span>
+        {equivalent && (
+          <span
+            key={equivalent.text}
+            className="flex animate-[fadeIn_0.4s_ease] items-center gap-1 text-[11px] font-medium text-loop-600"
+            title="Computed from EPA Greenhouse Gas Equivalencies + WRAP lifecycle factors"
+          >
+            {EqIcon && <EqIcon size={13} strokeWidth={2.2} className="shrink-0" />}
+            {equivalent.text}
+          </span>
+        )}
       </div>
       <Stat value={Math.round(homed).toString()} label="items rehomed" />
       <Stat value={Math.round(live).toString()} label="available now" />

@@ -1,7 +1,9 @@
 import { MapContainer, TileLayer, Marker, CircleMarker } from 'react-leaflet'
 import L from 'leaflet'
+import { X } from 'lucide-react'
 import type { Item } from '../lib/types'
-import { CATEGORY_EMOJI, co2Equivalent, formatCo2 } from '../lib/impact'
+import { co2Equivalent, formatCo2 } from '../lib/impact'
+import { CATEGORY_ICON, CATEGORY_PIN_SVG } from '../lib/icons'
 import { distanceKm, formatDistance } from '../lib/geo'
 import { timeAgo } from '../lib/time'
 
@@ -18,7 +20,7 @@ interface Props {
 function pin(item: Item) {
   return L.divIcon({
     className: '',
-    html: `<div class="loop-pin"><span>${CATEGORY_EMOJI[item.category]}</span></div>`,
+    html: `<div class="loop-pin"><span>${CATEGORY_PIN_SVG[item.category]}</span></div>`,
     iconSize: [34, 34],
     iconAnchor: [17, 34],
   })
@@ -32,6 +34,8 @@ export default function ItemDrawer({
   onClaim,
 }: Props) {
   if (!item) return null
+  const CatIcon = CATEGORY_ICON[item.category]
+  const eq = co2Equivalent(item.co2Saved)
   const claimed = item.status === 'claimed'
   const isOwner = !!userId && item.ownerId === userId
   const isClaimer = !!userId && item.claimedById === userId
@@ -73,7 +77,7 @@ export default function ItemDrawer({
             onClick={onClose}
             className="absolute left-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-white/90 text-gray-700 shadow hover:bg-white"
           >
-            ✕
+            <X size={18} />
           </button>
           <span className="absolute right-3 top-3 rounded-full bg-loop-600 px-3 py-1 text-sm font-bold text-white shadow">
             saves {formatCo2(item.co2Saved)} CO₂
@@ -88,9 +92,9 @@ export default function ItemDrawer({
         <div className="flex-1 space-y-4 overflow-y-auto p-5">
           <div>
             <h2 className="text-xl font-bold text-gray-900">{item.title}</h2>
-            <p className="text-sm text-gray-500">
-              {CATEGORY_EMOJI[item.category]} {item.category} · posted by{' '}
-              {item.ownerName} · {timeAgo(item.createdAt)}
+            <p className="flex items-center gap-1 text-sm text-gray-500">
+              <CatIcon size={14} className="shrink-0" /> {item.category} · posted
+              by {item.ownerName} · {timeAgo(item.createdAt)}
             </p>
           </div>
 
@@ -105,7 +109,7 @@ export default function ItemDrawer({
               </span>
               {walkMin != null && (
                 <span className="text-xs text-loop-600">
-                  ~{walkMin} min walk · {co2Equivalent(item.co2Saved)}
+                  ~{walkMin} min walk · {eq.text}
                 </span>
               )}
             </div>

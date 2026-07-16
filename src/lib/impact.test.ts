@@ -17,18 +17,18 @@ describe('impact', () => {
 
   it('gives a fun, relatable single equivalent', () => {
     const e = co2Equivalent(19)
-    expect(e).toContain('≈')
-    expect(e).toMatch(
-      /tree|mile|burger|shower|coffee|stream|balloon|charge|flight|car/,
+    expect(e.text).toContain('≈')
+    expect(e.icon).toMatch(
+      /tree|car|burger|shower|coffee|stream|balloon|phone|flight/,
     )
     // Very small amounts still resolve to something sensible.
-    expect(co2Equivalent(0.05)).toContain('≈')
+    expect(co2Equivalent(0.05).text).toContain('≈')
   })
 
   it('rotates through several equivalents for the community banner', () => {
     const list = co2Equivalents(1300)
     expect(list.length).toBeGreaterThan(3)
-    expect(list.every((s) => s.includes('≈'))).toBe(true)
+    expect(list.every((s) => s.text.includes('≈') && s.icon)).toBe(true)
     expect(co2Equivalents(0)).toEqual([])
   })
 })

@@ -1,17 +1,13 @@
 import { useState } from 'react'
-import type { AppNotification, NotificationType } from '../lib/types'
+import { Bell } from 'lucide-react'
+import type { AppNotification } from '../lib/types'
 import { timeAgo } from '../lib/time'
+import { NOTIF_ICON } from '../lib/icons'
 
 interface Props {
   notifications: AppNotification[]
   onOpenItem: (itemId: string) => void
   onMarkRead: () => void
-}
-
-const ICON: Record<NotificationType, string> = {
-  match: '🎯',
-  claim: '🎉',
-  message: '💬',
 }
 
 export default function NotificationsBell({
@@ -33,9 +29,9 @@ export default function NotificationsBell({
       <button
         onClick={toggle}
         title="Notifications"
-        className="relative grid h-9 w-9 place-items-center rounded-full border border-gray-200 text-base hover:bg-gray-50"
+        className="relative grid h-9 w-9 place-items-center rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50"
       >
-        🔔
+        <Bell size={17} />
         {unread > 0 && (
           <span className="absolute -right-1 -top-1 grid h-4 min-w-[16px] place-items-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
             {unread}
@@ -54,7 +50,9 @@ export default function NotificationsBell({
                 Nothing yet — post an item or set an alert.
               </p>
             )}
-            {notifications.map((n) => (
+            {notifications.map((n) => {
+              const NIcon = NOTIF_ICON[n.type]
+              return (
               <button
                 key={n.id}
                 onClick={() => {
@@ -65,7 +63,7 @@ export default function NotificationsBell({
                   !n.read ? 'bg-loop-50/40' : ''
                 }`}
               >
-                <span className="text-lg">{ICON[n.type]}</span>
+                <NIcon size={18} className="mt-0.5 shrink-0 text-loop-600" />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-semibold text-gray-800">
                     {n.title}
@@ -74,7 +72,8 @@ export default function NotificationsBell({
                   <span className="text-[11px] text-gray-400">{timeAgo(n.createdAt)}</span>
                 </span>
               </button>
-            ))}
+              )
+            })}
           </div>
         </>
       )}

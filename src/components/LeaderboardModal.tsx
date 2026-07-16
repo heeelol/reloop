@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
+import { Trophy, Medal, X } from 'lucide-react'
 import type { LeaderRow } from '../lib/types'
 import { fetchLeaderboard } from '../lib/api'
 import { formatCo2 } from '../lib/impact'
+
+const MEDAL_COLOR = ['#eab308', '#94a3b8', '#b45309'] // gold, silver, bronze
 
 interface Props {
   open: boolean
@@ -26,8 +29,12 @@ export default function LeaderboardModal({ open, onClose }: Props) {
 
   if (!open) return null
 
-  const medal = (i: number) =>
-    i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`
+  const rank = (i: number) =>
+    i < 3 ? (
+      <Medal size={20} color={MEDAL_COLOR[i]} strokeWidth={2.4} />
+    ) : (
+      <span className="text-sm font-bold text-gray-500">{i + 1}</span>
+    )
 
   return (
     <div
@@ -39,12 +46,14 @@ export default function LeaderboardModal({ open, onClose }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-1 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-loop-800">🏆 Top givers nearby</h2>
+          <h2 className="flex items-center gap-2 text-lg font-bold text-loop-800">
+            <Trophy size={20} className="text-loop-600" /> Top givers nearby
+          </h2>
           <button
             onClick={onClose}
             className="grid h-8 w-8 place-items-center rounded-full text-gray-400 hover:bg-gray-100"
           >
-            ✕
+            <X size={18} />
           </button>
         </div>
         <p className="mb-3 text-xs text-gray-500">Ranked by CO₂ kept out of landfill.</p>
@@ -60,7 +69,7 @@ export default function LeaderboardModal({ open, onClose }: Props) {
                 i < 3 ? 'bg-loop-50' : 'bg-gray-50'
               }`}
             >
-              <span className="w-6 text-center text-lg font-bold">{medal(i)}</span>
+              <span className="grid w-6 place-items-center">{rank(i)}</span>
               <span className="flex-1 truncate text-sm font-semibold text-gray-800">
                 {r.ownerName}
               </span>

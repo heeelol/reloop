@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react'
+import { Camera, Sparkles } from 'lucide-react'
 import type { AiAnalysis, Category, Item } from '../lib/types'
-import { CATEGORIES, CATEGORY_EMOJI, co2Equivalent, formatCo2 } from '../lib/impact'
+import { CATEGORIES, co2Equivalent, formatCo2 } from '../lib/impact'
+import { CATEGORY_ICON, EQUIVALENT_ICON } from '../lib/icons'
 import { analyzePhoto } from '../lib/ai'
 import { compressImage } from '../lib/image'
 
@@ -62,6 +64,9 @@ export default function PostItemModal({ userLoc, onClose, onSubmit }: Props) {
   }
 
   const canSubmit = !!preview && !!title.trim() && !!userLoc && !analyzing
+  const CatIcon = ai ? CATEGORY_ICON[ai.category] : null
+  const eq = ai ? co2Equivalent(ai.co2Saved) : null
+  const EqIcon = eq ? EQUIVALENT_ICON[eq.icon] : null
 
   return (
     <div
@@ -92,7 +97,9 @@ export default function PostItemModal({ userLoc, onClose, onSubmit }: Props) {
               <img src={preview} alt="preview" className="h-full w-full object-cover" />
             ) : (
               <div className="text-center text-sm text-loop-700">
-                <div className="mb-1 text-3xl">📷</div>
+                <div className="mb-1 flex justify-center">
+                  <Camera size={30} className="text-loop-500" />
+                </div>
                 Tap to add a photo
                 <div className="text-xs text-loop-600">
                   Our AI will identify it and estimate the CO₂ you save
@@ -123,7 +130,9 @@ export default function PostItemModal({ userLoc, onClose, onSubmit }: Props) {
           {ai && (
             <div className="animate-[fadeIn_0.3s_ease] rounded-xl border border-loop-200 bg-loop-50 p-3.5">
               <div className="mb-1.5 flex items-center justify-between text-xs font-bold uppercase tracking-wide text-loop-700">
-                <span>✨ AI analysis</span>
+                <span className="flex items-center gap-1">
+                  <Sparkles size={13} /> AI analysis
+                </span>
                 {ai.confidence != null && (
                   <span
                     title="Model's self-reported classification confidence (structured JSON output)"
@@ -140,8 +149,9 @@ export default function PostItemModal({ userLoc, onClose, onSubmit }: Props) {
                 )}
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-gray-800">
-                  {CATEGORY_EMOJI[ai.category]} {ai.category}
+                <span className="flex items-center gap-1.5 text-sm font-semibold text-gray-800">
+                  {CatIcon && <CatIcon size={15} className="text-loop-700" />}
+                  {ai.category}
                   {ai.condition && (
                     <span className="ml-1.5 rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-gray-500">
                       {ai.condition}
@@ -153,7 +163,12 @@ export default function PostItemModal({ userLoc, onClose, onSubmit }: Props) {
                 </span>
               </div>
               <p className="mt-1 text-xs text-loop-700">{ai.reason}</p>
-              <p className="text-[11px] text-loop-600">{co2Equivalent(ai.co2Saved)}</p>
+              {eq && (
+                <p className="flex items-center gap-1 text-[11px] text-loop-600">
+                  {EqIcon && <EqIcon size={12} className="shrink-0" />}
+                  {eq.text}
+                </p>
+              )}
             </div>
           )}
 
@@ -185,7 +200,7 @@ export default function PostItemModal({ userLoc, onClose, onSubmit }: Props) {
                 >
                   {CATEGORIES.map((c) => (
                     <option key={c} value={c}>
-                      {CATEGORY_EMOJI[c]} {c}
+                      {c}
                     </option>
                   ))}
                 </select>

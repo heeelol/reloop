@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { AppNotification, Item } from './lib/types'
 import { generateMockItems } from './lib/mock'
+import { Zap, Flame, Sprout, Map as MapIcon, List } from 'lucide-react'
 import { hasSupabase } from './lib/supabase'
 import { co2Equivalent } from './lib/impact'
 import { celebrate } from './lib/celebrate'
@@ -130,7 +131,7 @@ export default function App() {
             // Someone else just posted nearby → announce it (drives the
             // side-by-side realtime demo: post on A, watch it land on B).
             if (it.ownerId && it.ownerId !== id) {
-              flash(`📍 Just posted nearby: ${it.title}`)
+              flash(`Just posted nearby: ${it.title}`)
             }
           },
           (it) => {
@@ -139,7 +140,7 @@ export default function App() {
             // Someone reserved an item you posted → celebrate for the owner.
             if (it.ownerId && it.ownerId === id && it.status === 'claimed') {
               celebrate()
-              flash(`🎉 A neighbour reserved your “${it.title}”!`)
+              flash(`A neighbour reserved your “${it.title}”!`)
             }
           },
         )
@@ -247,9 +248,9 @@ export default function App() {
     celebrate()
     if (it)
       flash(
-        `Reserved “${it.title}” — saves ${it.co2Saved} kg CO₂, ${co2Equivalent(
-          it.co2Saved,
-        )}`,
+        `Reserved “${it.title}” — saves ${it.co2Saved} kg CO₂, ${
+          co2Equivalent(it.co2Saved).text
+        }`,
       )
   }
 
@@ -321,7 +322,7 @@ export default function App() {
     }
     setShowPost(false)
     setMobileView('map')
-    flash('Posted! It’s live on the map for your neighbours 📍')
+    flash('Posted! It’s live on the map for your neighbours')
   }
 
   async function handleSeed() {
@@ -347,7 +348,7 @@ export default function App() {
       userLoc?.[1] ?? null,
       radiusKm * 1000,
     )
-    flash(ok ? `Alert set — we’ll ping you when “${query}” appears 🔔` : 'Could not set alert')
+    flash(ok ? `Alert set — we’ll ping you when “${query}” appears` : 'Could not set alert')
   }
 
   async function handleMarkRead() {
@@ -411,11 +412,12 @@ export default function App() {
           <button
             key={v}
             onClick={() => setMobileView(v)}
-            className={`flex-1 rounded-lg py-1.5 text-sm font-semibold capitalize transition ${
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-1.5 text-sm font-semibold capitalize transition ${
               mobileView === v ? 'bg-loop-100 text-loop-700' : 'text-gray-500'
             }`}
           >
-            {v === 'list' ? '☰ List' : '🗺️ Map'}
+            {v === 'list' ? <List size={15} /> : <MapIcon size={15} />}
+            {v}
           </button>
         ))}
       </div>
@@ -494,7 +496,7 @@ export default function App() {
               title="Live PostGIS nearest-neighbour search (ST_DWithin over a GiST index), timed client-side"
               className="absolute left-14 top-3 z-[500] flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1.5 font-mono text-[11px] font-semibold text-gray-700 shadow-md backdrop-blur"
             >
-              <span className="text-loop-600">⚡</span>
+              <Zap size={13} className="text-loop-600" />
               {geoStat.count} nearby · PostGIS in {geoStat.ms} ms
             </div>
           )}
@@ -517,21 +519,27 @@ export default function App() {
           )}
           <button
             onClick={() => setShowHeat((v) => !v)}
-            className={`absolute right-3 top-3 z-[500] rounded-full px-3 py-1.5 text-xs font-semibold shadow-md transition ${
+            className={`absolute right-3 top-3 z-[500] flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold shadow-md transition ${
               showHeat
                 ? 'bg-loop-600 text-white'
                 : 'bg-white text-gray-700 hover:bg-gray-50'
             }`}
           >
-            🔥 Impact heatmap
+            <Flame size={14} /> Impact heatmap
           </button>
           {showSeed && (
             <button
               onClick={handleSeed}
               disabled={seeding}
-              className="absolute bottom-4 left-1/2 z-[500] -translate-x-1/2 rounded-full bg-loop-600 px-4 py-2 text-xs font-semibold text-white shadow-lg transition hover:bg-loop-700 disabled:opacity-60"
+              className="absolute bottom-4 left-1/2 z-[500] flex items-center gap-1.5 -translate-x-1/2 rounded-full bg-loop-600 px-4 py-2 text-xs font-semibold text-white shadow-lg transition hover:bg-loop-700 disabled:opacity-60"
             >
-              {seeding ? 'Adding…' : '🌱 Seed my neighbourhood (demo)'}
+              {seeding ? (
+                'Adding…'
+              ) : (
+                <>
+                  <Sprout size={14} /> Seed my neighbourhood (demo)
+                </>
+              )}
             </button>
           )}
         </section>

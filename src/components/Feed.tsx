@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Mic, Zap, Bell, Heart } from 'lucide-react'
 import type { Category, Item } from '../lib/types'
-import { CATEGORIES, CATEGORY_EMOJI } from '../lib/impact'
+import { CATEGORIES } from '../lib/impact'
+import { CATEGORY_ICON } from '../lib/icons'
 import { distanceKm } from '../lib/geo'
 import { hasSupabase } from '../lib/supabase'
 import { searchItems } from '../lib/api'
@@ -178,13 +180,13 @@ export default function Feed({
               onClick={toggleVoice}
               title={listening ? 'Stop listening' : 'Search by voice'}
               aria-label="Search by voice"
-              className={`absolute right-1.5 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full text-sm transition ${
+              className={`absolute right-1.5 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full transition ${
                 listening
                   ? 'animate-pulse bg-red-500 text-white shadow'
                   : 'text-gray-400 hover:bg-gray-100 hover:text-loop-600'
               }`}
             >
-              🎤
+              <Mic size={15} />
             </button>
           )}
         </div>
@@ -193,7 +195,8 @@ export default function Feed({
             title="Reciprocal Rank Fusion of pgvector cosine similarity + Postgres full-text search, ranked server-side"
             className="flex items-center gap-1 text-[11px] font-medium text-loop-600"
           >
-            ⚡ Hybrid AI search · vector + keyword, fused for “{query.trim()}”
+            <Zap size={12} className="shrink-0" /> Hybrid AI search · vector +
+            keyword, fused for “{query.trim()}”
           </p>
         )}
         {onCreateWant && query.trim() !== '' && (
@@ -203,15 +206,16 @@ export default function Feed({
               onCreateWant(query.trim())
               setAlerted(true)
             }}
-            className={`w-full rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
+            className={`flex w-full items-center justify-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
               alerted
                 ? 'border-loop-200 bg-loop-50 text-loop-700'
                 : 'border-dashed border-loop-300 text-loop-700 hover:bg-loop-50'
             }`}
           >
+            <Bell size={13} className="shrink-0" />
             {alerted
-              ? '✓ We’ll notify you when a match is posted nearby'
-              : `🔔 Alert me when “${query.trim()}” is posted nearby`}
+              ? 'We’ll notify you when a match is posted nearby'
+              : `Alert me when “${query.trim()}” is posted nearby`}
           </button>
         )}
         <div className="flex items-center justify-between gap-2">
@@ -220,13 +224,16 @@ export default function Feed({
               All
             </Chip>
             <Chip active={showSaved} onClick={() => setShowSaved((v) => !v)}>
-              ♥ Saved
+              <Heart size={11} className={showSaved ? 'fill-current' : ''} /> Saved
             </Chip>
-            {CATEGORIES.map((c) => (
-              <Chip key={c} active={cat === c} onClick={() => setCat(c)}>
-                {CATEGORY_EMOJI[c]} {c}
-              </Chip>
-            ))}
+            {CATEGORIES.map((c) => {
+              const CatIcon = CATEGORY_ICON[c]
+              return (
+                <Chip key={c} active={cat === c} onClick={() => setCat(c)}>
+                  <CatIcon size={12} /> {c}
+                </Chip>
+              )
+            })}
           </div>
         </div>
         {!usingSemantic && (
@@ -301,7 +308,7 @@ function Chip({
   return (
     <button
       onClick={onClick}
-      className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium transition ${
+      className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium transition ${
         active
           ? 'bg-loop-500 text-white'
           : 'bg-gray-100 text-gray-600 hover:bg-gray-200'

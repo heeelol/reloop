@@ -1,6 +1,16 @@
 import { useMemo } from 'react'
+import {
+  Sprout,
+  Recycle,
+  Handshake,
+  Globe,
+  Award,
+  CircleCheck,
+  type LucideIcon,
+} from 'lucide-react'
 import type { Item } from '../lib/types'
-import { CATEGORY_EMOJI, formatCo2 } from '../lib/impact'
+import { formatCo2 } from '../lib/impact'
+import { CATEGORY_ICON } from '../lib/icons'
 import { timeAgo } from '../lib/time'
 
 interface Props {
@@ -20,6 +30,7 @@ function Row({
   onSelect: () => void
   action: React.ReactNode
 }) {
+  const CatIcon = CATEGORY_ICON[item.category]
   return (
     <div className="flex gap-3 rounded-xl border border-gray-100 bg-white p-2.5">
       <button onClick={onSelect} className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-gray-100">
@@ -31,9 +42,9 @@ function Row({
       </button>
       <div className="flex min-w-0 flex-1 flex-col">
         <h3 className="truncate text-sm font-semibold text-gray-900">{item.title}</h3>
-        <span className="text-[11px] text-gray-500">
-          {CATEGORY_EMOJI[item.category]} {item.category} · {formatCo2(item.co2Saved)} CO₂ ·{' '}
-          {timeAgo(item.createdAt)}
+        <span className="flex items-center gap-1 text-[11px] text-gray-500">
+          <CatIcon size={12} className="shrink-0" /> {item.category} ·{' '}
+          {formatCo2(item.co2Saved)} CO₂ · {timeAgo(item.createdAt)}
         </span>
         <div className="mt-auto pt-1.5">{action}</div>
       </div>
@@ -52,12 +63,12 @@ export default function MyItems({ items, userId, onRelease, onDelete, onSelect }
       given.reduce((s, i) => s + i.co2Saved, 0) +
       reserved.reduce((s, i) => s + i.co2Saved, 0)
     const rehomed = given.length + reserved.length
-    const badges: string[] = []
-    if (posted.length >= 1) badges.push('🌱 First give')
-    if (given.length >= 3) badges.push('♻️ Serial giver')
-    if (reserved.length >= 1) badges.push('🤝 Rescuer')
-    if (impactCo2 >= 50) badges.push('🌍 Eco hero')
-    if (rehomed >= 10) badges.push('🏅 Loop legend')
+    const badges: { Icon: LucideIcon; label: string }[] = []
+    if (posted.length >= 1) badges.push({ Icon: Sprout, label: 'First give' })
+    if (given.length >= 3) badges.push({ Icon: Recycle, label: 'Serial giver' })
+    if (reserved.length >= 1) badges.push({ Icon: Handshake, label: 'Rescuer' })
+    if (impactCo2 >= 50) badges.push({ Icon: Globe, label: 'Eco hero' })
+    if (rehomed >= 10) badges.push({ Icon: Award, label: 'Loop legend' })
     return { posted, reserved, impactCo2, rehomed, badges }
   }, [items, userId])
 
@@ -75,10 +86,10 @@ export default function MyItems({ items, userId, onRelease, onDelete, onSelect }
             <div className="mt-2 flex flex-wrap gap-1.5">
               {badges.map((b) => (
                 <span
-                  key={b}
-                  className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-loop-700 shadow-sm"
+                  key={b.label}
+                  className="flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-loop-700 shadow-sm"
                 >
-                  {b}
+                  <b.Icon size={12} strokeWidth={2.4} /> {b.label}
                 </span>
               ))}
             </div>
@@ -108,11 +119,17 @@ export default function MyItems({ items, userId, onRelease, onDelete, onSelect }
                     <span
                       className={
                         item.status === 'claimed'
-                          ? 'font-semibold text-loop-600'
+                          ? 'flex items-center gap-1 font-semibold text-loop-600'
                           : 'text-gray-400'
                       }
                     >
-                      {item.status === 'claimed' ? '✅ Reserved by a neighbour' : 'Available'}
+                      {item.status === 'claimed' ? (
+                        <>
+                          <CircleCheck size={13} /> Reserved by a neighbour
+                        </>
+                      ) : (
+                        'Available'
+                      )}
                     </span>
                     <button
                       onClick={() => onDelete(item.id)}

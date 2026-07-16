@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Recycle, Camera, Map, Handshake, type LucideIcon } from 'lucide-react'
 import { suggestName } from '../lib/profile'
 
 interface Props {
@@ -9,10 +10,10 @@ interface Props {
   onClose: () => void
 }
 
-const STEPS = [
-  { icon: '📷', text: 'Snap a photo — AI names it and estimates the CO₂ you save.' },
-  { icon: '🗺️', text: 'It drops onto the neighbourhood map for people nearby.' },
-  { icon: '🤝', text: 'A neighbour reserves it and collects it. Landfill avoided.' },
+const STEPS: { Icon: LucideIcon; text: string }[] = [
+  { Icon: Camera, text: 'Snap a photo — AI names it and estimates the CO₂ you save.' },
+  { Icon: Map, text: 'It drops onto the neighbourhood map for people nearby.' },
+  { Icon: Handshake, text: 'A neighbour reserves it and collects it. Landfill avoided.' },
 ]
 
 export default function OnboardingModal({
@@ -47,8 +48,8 @@ export default function OnboardingModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center gap-2.5">
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-loop-500 text-xl text-white">
-            ♻️
+          <div className="grid h-10 w-10 place-items-center rounded-xl bg-loop-500 text-white">
+            <Recycle size={22} strokeWidth={2.4} />
           </div>
           <div>
             <h2 className="text-lg font-bold text-loop-800">
@@ -64,7 +65,9 @@ export default function OnboardingModal({
           <ul className="mb-5 space-y-2.5">
             {STEPS.map((s) => (
               <li key={s.text} className="flex items-start gap-3 text-sm text-gray-700">
-                <span className="text-lg">{s.icon}</span>
+                <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-loop-100 text-loop-700">
+                  <s.Icon size={15} strokeWidth={2.2} />
+                </span>
                 <span>{s.text}</span>
               </li>
             ))}
