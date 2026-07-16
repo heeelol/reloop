@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { AppNotification, Item } from './lib/types'
 import { generateMockItems } from './lib/mock'
 import { hasSupabase } from './lib/supabase'
+import { co2Equivalent } from './lib/impact'
 import { celebrate } from './lib/celebrate'
 import {
   claimItem,
@@ -244,7 +245,12 @@ export default function App() {
       }
     }
     celebrate()
-    if (it) flash(`Reserved “${it.title}” — ${it.co2Saved} kg CO₂ saved 🌱`)
+    if (it)
+      flash(
+        `Reserved “${it.title}” — saves ${it.co2Saved} kg CO₂, ${co2Equivalent(
+          it.co2Saved,
+        )}`,
+      )
   }
 
   async function handleRelease(id: string) {

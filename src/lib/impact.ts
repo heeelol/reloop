@@ -46,30 +46,57 @@ export function formatCo2(kg: number): string {
   return `${kg.toFixed(kg < 10 ? 1 : 0)} kg`
 }
 
-// Relatable equivalent. Avg passenger car ≈ 0.19 kg CO2e per km.
-export function co2Equivalent(kg: number): string {
-  const km = kg / 0.19
-  if (km >= 1) return `≈ ${Math.round(km)} km not driven`
-  const phoneCharges = kg / 0.008 // ~8 g CO2e per smartphone charge
-  return `≈ ${Math.round(phoneCharges)} phone charges`
+// Fun, relatable CO₂ equivalents. Each factor is kg CO₂e per unit, drawn from
+// published sources where possible (EPA GHG Equivalencies for driving, phone
+// charges and tree sequestration; lifecycle studies for burgers/flights) so the
+// numbers stay defensible — the emoji just makes the impact fun to read.
+interface Equivalent {
+  emoji: string
+  kgEach: number
+  label: string
 }
 
-// Rotating relatable equivalents, computed from published factors so the
-// numbers are defensible under questioning. Sources rendered in the UI:
-//   EPA Greenhouse Gas Equivalencies — 0.393 kg CO₂/mile driven,
-//   ~0.0124 kg/smartphone charge, urban tree ≈ 6 kg sequestered/year.
+const EQUIVALENTS: Equivalent[] = [
+  { emoji: '🌳', kgEach: 6, label: 'trees soaking up CO₂ for a year' },
+  { emoji: '🚗', kgEach: 0.393, label: 'miles not driven' },
+  { emoji: '🍔', kgEach: 3, label: 'beef burgers’ worth of emissions' },
+  { emoji: '🚿', kgEach: 0.5, label: 'hot showers' },
+  { emoji: '☕', kgEach: 0.2, label: 'cups of coffee' },
+  { emoji: '📺', kgEach: 0.055, label: 'hours of video streamed' },
+  { emoji: '🎈', kgEach: 0.014, label: 'party balloons filled with CO₂' },
+  { emoji: '📱', kgEach: 0.0124, label: 'phone charges' },
+  { emoji: '✈️', kgEach: 250, label: 'short-haul flights' },
+  { emoji: '🚙', kgEach: 4290, label: 'cars taken off the road for a year' },
+]
+
+function fmtCount(n: number): string {
+  if (n >= 10) return Math.round(n).toLocaleString()
+  return n.toFixed(1)
+}
+
+function render({ emoji, label }: Equivalent, n: number): string {
+  return `${emoji} ≈ ${fmtCount(n)} ${label}`
+}
+
+// A single, human-friendly equivalent — prefers a value in a relatable range
+// (2–500) so we never show "0.3 trees" or "104,838 phone charges".
+export function co2Equivalent(kg: number): string {
+  if (kg <= 0) return `${EQUIVALENTS[7].emoji} ≈ 0 ${EQUIVALENTS[7].label}`
+  const options = EQUIVALENTS.map((e) => ({ e, n: kg / e.kgEach })).filter(
+    ({ n }) => n >= 1,
+  )
+  const nice = options.find(({ n }) => n >= 2 && n <= 500) ?? options[0]
+  if (nice) return render(nice.e, nice.n)
+  // Below every factor's threshold — fall back to phone charges (finest grain).
+  return render(EQUIVALENTS[7], kg / EQUIVALENTS[7].kgEach)
+}
+
+// The full set of equivalents that land on a sensible number, for the rotating
+// community-impact banner. Ordered as listed above (trees & driving first).
 export function co2Equivalents(kg: number): string[] {
-  const out: string[] = []
-  const miles = kg / 0.393
-  if (miles >= 1) out.push(`≈ ${Math.round(miles).toLocaleString()} miles not driven`)
-  const treeYears = kg / 6
-  if (treeYears >= 1)
-    out.push(`≈ ${Math.round(treeYears).toLocaleString()} trees working for a year`)
-  const charges = kg / 0.0124
-  if (charges >= 1)
-    out.push(`≈ ${Math.round(charges).toLocaleString()} phone charges`)
-  const carYears = kg / 4290 // EPA: 4,290 kg = one car off the road for a year
-  if (carYears >= 1)
-    out.push(`≈ ${carYears.toFixed(1)} cars off the road for a year`)
+  if (kg <= 0) return []
+  const out = EQUIVALENTS.map((e) => ({ e, n: kg / e.kgEach }))
+    .filter(({ n }) => n >= 1 && n < 100000)
+    .map(({ e, n }) => render(e, n))
   return out.length ? out : [co2Equivalent(kg)]
 }

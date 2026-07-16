@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { co2ForCategory, formatCo2, co2Equivalent } from './impact'
+import { co2ForCategory, formatCo2, co2Equivalent, co2Equivalents } from './impact'
 
 describe('impact', () => {
   it('maps categories to CO2 values', () => {
@@ -15,8 +15,20 @@ describe('impact', () => {
     expect(formatCo2(8)).toBe('8.0 kg')
   })
 
-  it('gives a relatable driving equivalent', () => {
-    expect(co2Equivalent(19)).toBe('≈ 100 km not driven')
-    expect(co2Equivalent(0.1)).toContain('phone charges')
+  it('gives a fun, relatable single equivalent', () => {
+    const e = co2Equivalent(19)
+    expect(e).toContain('≈')
+    expect(e).toMatch(
+      /tree|mile|burger|shower|coffee|stream|balloon|charge|flight|car/,
+    )
+    // Very small amounts still resolve to something sensible.
+    expect(co2Equivalent(0.05)).toContain('≈')
+  })
+
+  it('rotates through several equivalents for the community banner', () => {
+    const list = co2Equivalents(1300)
+    expect(list.length).toBeGreaterThan(3)
+    expect(list.every((s) => s.includes('≈'))).toBe(true)
+    expect(co2Equivalents(0)).toEqual([])
   })
 })
