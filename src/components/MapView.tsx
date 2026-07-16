@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef } from 'react'
+import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import {
   MapContainer,
   TileLayer,
@@ -6,6 +6,7 @@ import {
   Popup,
   Circle,
   CircleMarker,
+  Polyline,
   useMap,
 } from 'react-leaflet'
 import L from 'leaflet'
@@ -13,6 +14,7 @@ import 'leaflet.heat'
 import type { Item } from '../lib/types'
 import { CATEGORY_EMOJI, formatCo2 } from '../lib/impact'
 import { distanceKm, formatDistance } from '../lib/geo'
+import { fetchRoute } from '../lib/route'
 
 interface Props {
   items: Item[]
@@ -58,6 +60,56 @@ function FlyToSelected({
     if (it) map.flyTo([it.lat, it.lng], Math.max(map.getZoom(), 15), { duration: 0.6 })
   }, [selectedId, map])
   return null
+}
+
+// Draws a real street route from the user to the selected give-away.
+// Falls back to a straight line if the routing service is unreachable.
+function RouteLine({
+  from,
+  to,
+}: {
+  from: [number, number] | null
+  to: [number, number] | null
+}) {
+  const [coords, setCoords] = useState<[number, number][]>([])
+  const lineRef = useRef<L.Polyline | null>(null)
+  const fromKey = from ? `${from[0]},${from[1]}` : ''
+  const toKey = to ? `${to[0]},${to[1]}` : ''
+  useEffect(() => {
+    if (!from || !to) {
+      setCoords([])
+      return
+    }
+    let cancelled = false
+    fetchRoute(from, to).then((r) => {
+      if (!cancelled) setCoords(r?.coords ?? [from, to])
+    })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fromKey, toKey])
+
+  // react-leaflet v5 drops pathOptions.className, so add the animated-dash class
+  // straight onto the SVG element after the layer has rendered its path.
+  useEffect(() => {
+    lineRef.current?.getElement()?.classList.add('pickup-route')
+  }, [coords])
+
+  if (coords.length < 2) return null
+  return (
+    <Polyline
+      ref={lineRef}
+      positions={coords}
+      pathOptions={{
+        color: '#078d59',
+        weight: 4,
+        opacity: 0.85,
+        lineCap: 'round',
+        dashArray: '2 10',
+      }}
+    />
+  )
 }
 
 // Impact heatmap layer weighted by CO2 saved per available item.
@@ -173,6 +225,12 @@ function MapView({
     [items, userLoc, onSelect, onOpenDetails, recentIds],
   )
 
+  // Coordinates of the selected item (for the pickup route line).
+  const selectedTo = useMemo(() => {
+    const it = items.find((i) => i.id === selectedId)
+    return it ? ([it.lat, it.lng] as [number, number]) : null
+  }, [items, selectedId])
+
   return (
     <MapContainer
       center={center}
@@ -189,6 +247,7 @@ function MapView({
       />
       <HeatLayer items={items} show={showHeat} />
       <FlyToSelected items={items} selectedId={selectedId} />
+      <RouteLine from={userLoc} to={selectedTo} />
       {userLoc && (
         <>
           <Circle

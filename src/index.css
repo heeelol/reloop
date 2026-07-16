@@ -130,3 +130,14 @@ body {
     opacity: 0;
   }
 }
+
+/* Animated dashed pickup route — the dashes flow toward the item. */
+.pickup-route {
+  stroke-dasharray: 2 10;
+  animation: routeFlow 1s linear infinite;
+}
+@keyframes routeFlow {
+  to {
+    stroke-dashoffset: -12;
+  }
+}

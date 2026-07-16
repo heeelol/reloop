@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Category, Item } from '../lib/types'
 import { CATEGORIES, CATEGORY_EMOJI } from '../lib/impact'
 import { distanceKm } from '../lib/geo'
@@ -19,6 +19,30 @@ interface Props {
 
 type SortKey = 'nearest' | 'newest' | 'impact'
 
+// Minimal shape of the Web Speech API we use (not in the standard TS lib DOM).
+interface SpeechRec {
+  lang: string
+  interimResults: boolean
+  continuous: boolean
+  onresult: (e: {
+    results: ArrayLike<ArrayLike<{ transcript: string }>>
+  }) => void
+  onend: () => void
+  onerror: () => void
+  start: () => void
+  stop: () => void
+}
+type SpeechCtor = new () => SpeechRec
+const SpeechRecognitionCtor: SpeechCtor | undefined =
+  typeof window !== 'undefined'
+    ? (window as unknown as {
+        SpeechRecognition?: SpeechCtor
+        webkitSpeechRecognition?: SpeechCtor
+      }).SpeechRecognition ??
+      (window as unknown as { webkitSpeechRecognition?: SpeechCtor })
+        .webkitSpeechRecognition
+    : undefined
+
 export default function Feed({
   items,
   userLoc,
@@ -36,6 +60,33 @@ export default function Feed({
   const [favs, setFavs] = useState<Set<string>>(() => getFavs())
   const [showSaved, setShowSaved] = useState(false)
   const [alerted, setAlerted] = useState(false)
+  const [listening, setListening] = useState(false)
+  const recRef = useRef<SpeechRec | null>(null)
+
+  // Voice "search by need" — dictate the query, it flows into hybrid search.
+  function toggleVoice() {
+    if (!SpeechRecognitionCtor) return
+    if (listening) {
+      recRef.current?.stop()
+      return
+    }
+    const rec = new SpeechRecognitionCtor()
+    rec.lang = 'en-US'
+    rec.interimResults = true
+    rec.continuous = false
+    rec.onresult = (e) => {
+      const text = Array.from(e.results)
+        .map((r) => r[0].transcript)
+        .join('')
+      setQuery(text)
+      setAlerted(false)
+    }
+    rec.onend = () => setListening(false)
+    rec.onerror = () => setListening(false)
+    recRef.current = rec
+    setListening(true)
+    rec.start()
+  }
 
   // Semantic "search by need" — embed the query and match items by meaning.
   // Falls back to the local keyword filter if there's no backend / it fails.
@@ -111,19 +162,38 @@ export default function Feed({
               setAlerted(false)
             }}
             placeholder={
-              hasSupabase
-                ? 'Search by need… “something to sit on”'
-                : 'Search give-aways nearby…'
+              listening
+                ? 'Listening…'
+                : hasSupabase
+                  ? 'Search by need… “something to sit on”'
+                  : 'Search give-aways nearby…'
             }
-            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 pr-9 text-sm outline-none focus:border-loop-400 focus:ring-2 focus:ring-loop-200"
+            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 pr-16 text-sm outline-none focus:border-loop-400 focus:ring-2 focus:ring-loop-200"
           />
           {searching && (
-            <span className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin rounded-full border-2 border-loop-200 border-t-loop-600" />
+            <span className="absolute right-10 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin rounded-full border-2 border-loop-200 border-t-loop-600" />
+          )}
+          {SpeechRecognitionCtor && (
+            <button
+              onClick={toggleVoice}
+              title={listening ? 'Stop listening' : 'Search by voice'}
+              aria-label="Search by voice"
+              className={`absolute right-1.5 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full text-sm transition ${
+                listening
+                  ? 'animate-pulse bg-red-500 text-white shadow'
+                  : 'text-gray-400 hover:bg-gray-100 hover:text-loop-600'
+              }`}
+            >
+              🎤
+            </button>
           )}
         </div>
         {usingSemantic && (
-          <p className="flex items-center gap-1 text-[11px] font-medium text-loop-600">
-            ✨ AI-ranked by relevance to “{query.trim()}”
+          <p
+            title="Reciprocal Rank Fusion of pgvector cosine similarity + Postgres full-text search, ranked server-side"
+            className="flex items-center gap-1 text-[11px] font-medium text-loop-600"
+          >
+            ⚡ Hybrid AI search · vector + keyword, fused for “{query.trim()}”
           </p>
         )}
         {onCreateWant && query.trim() !== '' && (

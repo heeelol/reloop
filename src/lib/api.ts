@@ -231,7 +231,11 @@ export async function embedText(text: string): Promise<number[] | null> {
   }
 }
 
-/** Semantic "search by need": embed the query, match items by meaning. */
+/**
+ * Hybrid "search by need": embed the query and fuse pgvector semantic ranking
+ * with Postgres full-text ranking via Reciprocal Rank Fusion (server-side).
+ * Falls back to pure vector match if the hybrid RPC isn't available.
+ */
 export async function searchItems(
   query: string,
   lat: number | null,
@@ -240,14 +244,25 @@ export async function searchItems(
   if (!supabase) return null
   const emb = await embedText(query)
   if (!emb) return null
-  const { data, error } = await supabase.rpc('match_items', {
-    query_embedding: JSON.stringify(emb),
+  const embStr = JSON.stringify(emb)
+  const { data, error } = await supabase.rpc('hybrid_search_items', {
+    query_text: query,
+    query_embedding: embStr,
     p_lat: lat,
     p_lng: lng,
   })
   if (error) {
-    console.warn('match_items failed:', error.message)
-    return null
+    console.warn('hybrid_search_items failed, falling back to vector:', error.message)
+    const { data: vdata, error: verror } = await supabase.rpc('match_items', {
+      query_embedding: embStr,
+      p_lat: lat,
+      p_lng: lng,
+    })
+    if (verror) {
+      console.warn('match_items failed:', verror.message)
+      return null
+    }
+    return (vdata ?? []).map(rowToItem)
   }
   return (data ?? []).map(rowToItem)
 }
