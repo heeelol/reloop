@@ -20,7 +20,7 @@ Built for **TechCommons Hacks V1** — theme: *Global & Local Impact*.
 ## Highlights
 
 - 🧠 **Hybrid "search by need"** — type (or 🎤 *speak*) *"something to sit on"* and a server-side **Reciprocal Rank Fusion** of pgvector cosine similarity + Postgres full-text search surfaces the chairs. AI is a retrieval layer, not a label.
-- 🚶 **Live pickup route** — select an item and a real street route (OSRM) animates from you to it, so collection feels effortless.
+- 🚶 **Live pickup route + directions** — select an item and a real street route (OSRM) animates from you to it, with turn-by-turn walking directions in the item view, so collection feels effortless.
 - 🎯 **AI matching alerts** — set an alert for what you need; when a semantically matching item is posted nearby, the server-side vector match notifies you.
 - 📷 **AI vision posting** — snap a photo, the model returns strict, schema-validated JSON (category, condition, **confidence %**); the confidence is shown in the UI so it reads as a guarded system, not a chatbot.
 - 📊 **Defensible impact** — CO₂ is computed from a fixed lifecycle table (WRAP/EPA), never model-invented, and rendered as rotating **published-factor equivalents** ("≈ 221 trees working for a year", cited to EPA).

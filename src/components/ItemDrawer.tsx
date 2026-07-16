@@ -1,10 +1,19 @@
-import { MapContainer, TileLayer, Marker, CircleMarker } from 'react-leaflet'
+import { useEffect, useState } from 'react'
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  CircleMarker,
+  Polyline,
+  useMap,
+} from 'react-leaflet'
 import L from 'leaflet'
-import { X } from 'lucide-react'
+import { X, Navigation } from 'lucide-react'
 import type { Item } from '../lib/types'
 import { co2Equivalent, formatCo2 } from '../lib/impact'
 import { CATEGORY_ICON, CATEGORY_PIN_SVG } from '../lib/icons'
 import { distanceKm, formatDistance } from '../lib/geo'
+import { fetchRoute, type RouteResult } from '../lib/route'
 import { timeAgo } from '../lib/time'
 
 import ChatPanel from './ChatPanel'
@@ -26,6 +35,20 @@ function pin(item: Item) {
   })
 }
 
+// Fit the mini-map to show the whole pickup route (you → item).
+function FitRoute({ coords }: { coords: [number, number][] }) {
+  const map = useMap()
+  useEffect(() => {
+    if (coords.length >= 2)
+      map.fitBounds(L.latLngBounds(coords), { padding: [24, 24] })
+  }, [coords, map])
+  return null
+}
+
+function walkMinutes(distanceM: number): number {
+  return Math.max(1, Math.round((distanceM / 1000 / 4.8) * 60))
+}
+
 export default function ItemDrawer({
   item,
   userLoc,
@@ -33,6 +56,33 @@ export default function ItemDrawer({
   onClose,
   onClaim,
 }: Props) {
+  const [route, setRoute] = useState<RouteResult | null>(null)
+  const [loadingRoute, setLoadingRoute] = useState(false)
+  const itemId = item?.id
+  const lat = item?.lat
+  const lng = item?.lng
+  const uLat = userLoc?.[0]
+  const uLng = userLoc?.[1]
+
+  // Fetch real turn-by-turn directions from the user to this give-away.
+  useEffect(() => {
+    if (lat == null || lng == null || uLat == null || uLng == null) {
+      setRoute(null)
+      return
+    }
+    let cancelled = false
+    setLoadingRoute(true)
+    fetchRoute([uLat, uLng], [lat, lng]).then((r) => {
+      if (!cancelled) {
+        setRoute(r)
+        setLoadingRoute(false)
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [itemId, lat, lng, uLat, uLng])
+
   if (!item) return null
   const CatIcon = CATEGORY_ICON[item.category]
   const eq = co2Equivalent(item.co2Saved)
@@ -142,8 +192,75 @@ export default function ItemDrawer({
                   }}
                 />
               )}
+              {route && route.coords.length >= 2 && (
+                <>
+                  <Polyline
+                    positions={route.coords}
+                    pathOptions={{
+                      color: '#078d59',
+                      weight: 4,
+                      opacity: 0.85,
+                      lineCap: 'round',
+                      dashArray: '2 9',
+                    }}
+                  />
+                  <FitRoute coords={route.coords} />
+                </>
+              )}
             </MapContainer>
           </div>
+
+          {userLoc && (
+            <div className="rounded-xl border border-gray-100">
+              <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2">
+                <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-loop-700">
+                  <Navigation size={13} /> Directions to pickup
+                </span>
+                {route && (
+                  <span className="text-[11px] font-medium text-gray-500">
+                    {formatDistance(route.distanceM / 1000)} · ~
+                    {walkMinutes(route.distanceM)} min walk
+                  </span>
+                )}
+              </div>
+              <div className="max-h-44 overflow-y-auto p-2">
+                {loadingRoute && (
+                  <p className="p-2 text-center text-xs text-gray-400">
+                    Finding the best way there…
+                  </p>
+                )}
+                {!loadingRoute && !route && (
+                  <p className="p-2 text-center text-xs text-gray-400">
+                    {dist != null ? formatDistance(dist) : ''} toward{' '}
+                    {item.locationName} — routing unavailable right now.
+                  </p>
+                )}
+                {!loadingRoute && route && (
+                  <ol className="space-y-0.5">
+                    {route.steps.map((s, i) => (
+                      <li
+                        key={i}
+                        className="flex gap-2 rounded-lg px-2 py-1 text-xs text-gray-700"
+                      >
+                        <span className="mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-full bg-loop-100 text-[9px] font-bold text-loop-700">
+                          {i + 1}
+                        </span>
+                        <span className="flex-1">
+                          {s.instruction}
+                          {s.distanceM > 20 && (
+                            <span className="text-gray-400">
+                              {' · '}
+                              {formatDistance(s.distanceM / 1000)}
+                            </span>
+                          )}
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </div>
+            </div>
+          )}
 
           {canChat && <ChatPanel itemId={item.id} userId={userId ?? null} />}
         </div>

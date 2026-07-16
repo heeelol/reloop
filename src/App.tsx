@@ -44,6 +44,11 @@ import ErrorBoundary from './components/ErrorBoundary'
 // Fallback center (used until geolocation resolves): central San Francisco.
 const DEFAULT_CENTER: [number, number] = [37.7749, -122.4194]
 
+// Pin the app to a fixed US location (San Francisco) instead of the device's
+// real GPS, so the map, seeded give-aways and pickup routes always land in a US
+// neighbourhood for the demo. Set to null to use the visitor's real location.
+const FORCE_LOCATION: [number, number] | null = [37.7749, -122.4194]
+
 // Community activity accumulated before this session, so the impact stats
 // reflect an established neighbourhood rather than starting at zero.
 const BASELINE_CO2 = 1240
@@ -152,7 +157,9 @@ export default function App() {
       }
     }
 
-    if ('geolocation' in navigator) {
+    if (FORCE_LOCATION) {
+      init(FORCE_LOCATION, true)
+    } else if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
         (pos) => init([pos.coords.latitude, pos.coords.longitude], true),
         () => init(DEFAULT_CENTER, false),
